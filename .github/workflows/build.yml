@@ -1,0 +1,36 @@
+name: Build
+
+on:
+  push:
+    paths-ignore:
+      - '**.md'
+      - '.github/**'
+      - '!.github/workflows/build.yml'
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Install Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+      - name: Cache dependencies & build
+        id: cache
+        uses: actions/cache@v5
+        with:
+          path: |
+            ~/.local/share/pnpm
+            .next/cache
+            node_modules
+            src/generated
+          key: ${{ runner.os }}-node-${{ hashFiles('pnpm-lock.yaml') }}
+      - name: Install dependencies
+        run: |
+          npm install -g pnpm
+          pnpm install
+      - name: Run build
+        run: pnpm run build:dev
