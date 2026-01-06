@@ -5,10 +5,267 @@
 // Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
 
 generator client {
-  provider = "prisma-client"
-  output   = "../src/generated/prisma"
+  provider        = "prisma-client"
+  output          = "../src/generated/prisma"
+  previewFeatures = ["postgresqlExtensions"]
 }
 
 datasource db {
-  provider = "postgresql"
+  provider   = "postgresql"
+  extensions = [citext]
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique @db.Citext
+  name      String
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz()
+
+  groupOwnerships          EventGroup[]              @relation("EventGroupOwner")
+  groupManagements         EventGroupAdministrator[] @relation("EventGroupAdministrator")
+  eventOwnerships          Event[]                   @relation("EventOwner")
+  eventManagements         EventAdministrator[]      @relation("EventAdministrator")
+  surveyResponses          SurveyResponse[]          @relation("SurveyResponse")
+  events                   Attendance[]              @relation("EventAttendance")
+  receptions               Reception[]               @relation("EventVisitor")
+  feeReceipts              EventFee[]                @relation("EventFee")
+  sentMassMails            MassMail[]                @relation("EventMassMailSender")
+  receivedMassMails        MassMailTargets[]         @relation("MassMailTarget")
+  administratorDirectMails DirectMail[]              @relation("DirectMailAdministrator")
+  userDirectMails          DirectMail[]              @relation("DirectMailUser")
+
+  @@map("users")
+}
+
+model EventGroup {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  ownerId     String   @map("owner_id")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt   DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz()
+
+  owner          User                      @relation("EventGroupOwner", fields: [ownerId], references: [id])
+  administrators EventGroupAdministrator[] @relation("EventGroupAdministrator")
+  events         Event[]                   @relation("EventGroup")
+
+  @@map("event_groups")
+}
+
+model EventGroupAdministrator {
+  groupId   String   @map("group_id")
+  userId    String   @map("user_id")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz()
+
+  group EventGroup @relation("EventGroupAdministrator", fields: [groupId], references: [id])
+  user  User       @relation("EventGroupAdministrator", fields: [userId], references: [id])
+
+  @@id([groupId, userId])
+  @@map("event_group_administrators")
+}
+
+model Event {
+  id                      String    @id @default(cuid())
+  groupId                 String    @map("group_id")
+  name                    String
+  description             String?
+  place                   String
+  mapUrl                  String?   @map("map_url")
+  allowVisitorListSharing Boolean   @default(false) @map("allow_visitor_list_sharing")
+  publishedAt             DateTime? @map("published_at") @db.Timestamptz()
+  registrationEndsAt      DateTime? @map("registration_ends_at") @db.Timestamptz()
+  startsAt                DateTime? @map("starts_at") @db.Timestamptz()
+  endsAt                  DateTime? @map("ends_at") @db.Timestamptz()
+  ownerId                 String    @map("owner_id")
+  createdAt               DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt               DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz()
+
+  group EventGroup @relation("EventGroup", fields: [groupId], references: [id])
+  owner User       @relation("EventOwner", fields: [ownerId], references: [id])
+
+  administrators EventAdministrator[] @relation("EventAdministrator")
+  surveys        Survey[]             @relation("EventSurvey")
+  attendances    Attendance[]         @relation("EventAttendance")
+  receptions     Reception[]          @relation("EventReception")
+  feeReceipts    EventFee[]           @relation("EventFee")
+  eventMail      EventMail?           @relation("EventMail")
+  massMails      MassMail[]           @relation("EventMassMail")
+  directMails    DirectMail[]         @relation("DirectMail")
+
+  @@map("events")
+}
+
+model EventAdministrator {
+  eventId   String   @map("event_id")
+  userId    String   @map("user_id")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz()
+
+  event Event @relation("EventAdministrator", fields: [eventId], references: [id])
+  user  User  @relation("EventAdministrator", fields: [userId], references: [id])
+
+  @@id([eventId, userId])
+  @@map("event_administrators")
+}
+
+model EventMail {
+  eventId   String   @id @map("event_id")
+  title     String
+  content   String?
+  custom    Json?
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz()
+
+  event Event @relation("EventMail", fields: [eventId], references: [id])
+
+  @@map("event_mails")
+}
+
+enum SurveyType {
+  PRE_EVENT
+  POST_EVENT
+  SCHEDULE
+
+  @@map("SURVEY_TYPE")
+}
+
+model Survey {
+  id        String     @id @default(cuid())
+  eventId   String     @map("event_id")
+  type      SurveyType
+  data      Json
+  createdAt DateTime   @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt DateTime   @default(now()) @updatedAt @map("updated_at") @db.Timestamptz()
+
+  event Event @relation("EventSurvey", fields: [eventId], references: [id])
+
+  responses SurveyResponse[] @relation("SurveyResponse")
+
+  @@map("surveys")
+}
+
+model SurveyResponse {
+  surveyId  String   @map("survey_id")
+  userId    String   @map("user_id")
+  data      Json
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz()
+
+  survey Survey @relation("SurveyResponse", fields: [surveyId], references: [id])
+  user   User   @relation("SurveyResponse", fields: [userId], references: [id])
+
+  @@id([surveyId, userId])
+  @@map("survey_responses")
+}
+
+enum AttendanceType {
+  PRESENCE
+  PRESENCE_PARTIALLY
+  ABSENCE
+
+  @@map("ATTENDANCE_TYPE")
+}
+
+model Attendance {
+  eventId      String          @map("event_id")
+  userId       String          @map("user_id")
+  secret       String          @default(cuid())
+  isMailOpened Boolean         @default(false) @map("is_mail_opened")
+  attendance   AttendanceType?
+  comment      String?
+  createdAt    DateTime        @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt    DateTime        @default(now()) @updatedAt @map("updated_at") @db.Timestamptz()
+
+  event Event @relation("EventAttendance", fields: [eventId], references: [id])
+  user  User  @relation("EventAttendance", fields: [userId], references: [id])
+
+  @@id([eventId, userId])
+  @@map("attendances")
+}
+
+model Reception {
+  eventId    String   @map("event_id")
+  visitorId  String   @map("visitor_id")
+  isRecepted Boolean  @default(false) @map("is_recepted")
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt  DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz()
+
+  event   Event @relation("EventReception", fields: [eventId], references: [id])
+  visitor User  @relation("EventVisitor", fields: [visitorId], references: [id])
+
+  @@id([eventId, visitorId])
+  @@map("receptions")
+}
+
+model EventFee {
+  eventId   String   @map("event_id")
+  visitorId String   @map("visitor_id")
+  amount    Int
+  receipted Int      @default(0)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz()
+
+  event   Event @relation("EventFee", fields: [eventId], references: [id])
+  visitor User  @relation("EventFee", fields: [visitorId], references: [id])
+
+  @@id([eventId, visitorId])
+  @@map("event_fees")
+}
+
+model MassMail {
+  id              String   @id @default(cuid())
+  eventId         String   @map("event_id")
+  administratorId String   @map("administrator_id")
+  title           String
+  content         String
+  sentAt          DateTime @default(now()) @map("sent_at") @db.Timestamptz()
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt       DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz()
+
+  event         Event @relation("EventMassMail", fields: [eventId], references: [id])
+  administrator User  @relation("EventMassMailSender", fields: [administratorId], references: [id])
+
+  targets MassMailTargets[] @relation("MassMailTarget")
+
+  @@map("mass_mails")
+}
+
+model MassMailTargets {
+  mailId       String   @map("mail_id")
+  targetId     String   @map("target_id")
+  secret       String   @default(cuid())
+  isMailOpened Boolean  @default(false) @map("is_mail_opened")
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt    DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz()
+
+  mail   MassMail @relation("MassMailTarget", fields: [mailId], references: [id])
+  target User     @relation("MassMailTarget", fields: [targetId], references: [id])
+
+  @@id([mailId, targetId])
+  @@map("mass_mail_targets")
+}
+
+model DirectMail {
+  id              String   @id @default(cuid())
+  eventId         String   @map("event_id")
+  userId          String   @map("user_id")
+  administratorId String?  @map("administrator_id") // nullなら管理者が送信
+  title           String
+  content         String?
+  secret          String?  @default(cuid()) // 管理者宛の場合はnull
+  isMailOpened    Boolean  @default(false) @map("is_mail_opened")
+  referenceId     String?  @unique @map("reference_id")
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt       DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz()
+
+  event         Event       @relation("DirectMail", fields: [eventId], references: [id])
+  user          User        @relation("DirectMailUser", fields: [userId], references: [id])
+  administrator User?       @relation("DirectMailAdministrator", fields: [administratorId], references: [id])
+  reference     DirectMail? @relation("DirectMailReference", fields: [referenceId], references: [id])
+
+  referencedBy DirectMail? @relation("DirectMailReference")
+
+  @@map("direct_mails")
 }
