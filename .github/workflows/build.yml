@@ -5,6 +5,7 @@ on:
     paths-ignore:
       - '**.md'
       - '.github/**'
+      - 'docs/**'
       - '!.github/workflows/build.yml'
   workflow_dispatch:
 
