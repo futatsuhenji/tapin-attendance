@@ -6,7 +6,7 @@ export default function InvitationLayout({
   return (
     <div
       style={{
-        minHeight: '100vh',
+        minHeight: '90vh',
         backgroundColor: '#f5f7fa',
         color:'#111111'
       }}

@@ -40,29 +40,31 @@ export default function EventInvitationPage() {
 
   return (
 
-    <div style={{ maxWidth: 800, margin: '0 auto', padding: 24 }}>
-      <header style={{ marginBottom: 24 }}>
-        <h1 className="text-2xl">イベントメール
-          {mode === 'create' && 'の作成'}
-          {mode === 'edit' && 'の編集'}
-          {mode === 'view' && 'の閲覧'}
-        </h1>
-      </header>
+    <div style={{ maxWidth: 1200, margin: '0 auto', padding: 24 }}>
 
-      <section>
-        {/* タイトル */}
-        <div style={{ marginBottom: 16 }}>
-          <label>
-            <div>メールタイトル</div>
-            {mode === 'view' && (
-              <input
-                type="text"
-                value={mail.title}
-                disabled={isReadOnly}
-                onChange={(e) =>
-                  setMail({ ...mail, title: e.target.value })
-                }
-                className="
+      <div className="min-h-screen bg-gray-50 py-15 px-4">
+        <div className="mx-auto bg-white max-w-5xl min-h-[70vh] rounded-none p-8 shadow-md">
+          <header style={{ marginBottom: 24 }}>
+            <h1 className="text-2xl">イベントメール
+              {mode === 'create' && 'の作成'}
+              {mode === 'edit' && 'の編集'}
+              {mode === 'view' && 'の閲覧'}
+            </h1>
+          </header>
+          <section>
+            {/* タイトル */}
+            <div style={{ marginBottom: 16 }}>
+              <label>
+                <div>メールタイトル</div>
+                {mode === 'view' && (
+                  <input
+                    type="text"
+                    value={mail.title}
+                    disabled={isReadOnly}
+                    onChange={(e) =>
+                      setMail({ ...mail, title: e.target.value })
+                    }
+                    className="
     w-full
     px-3 py-2
     border border-gray-300
@@ -75,17 +77,17 @@ export default function EventInvitationPage() {
     focus:outline-none
     focus:ring-1 focus:ring-blue-500
   "
-              />
-            )}
-            {(mode === 'create' || mode === 'edit') && (
-              <input
-                onChange={(e) =>
-                  setMail({ ...mail, title: e.target.value })
-                }
-                disabled={isReadOnly}
-                value={mail.title}
-                type="text"
-                className="
+                  />
+                )}
+                {(mode === 'create' || mode === 'edit') && (
+                  <input
+                    onChange={(e) =>
+                      setMail({ ...mail, title: e.target.value })
+                    }
+                    disabled={isReadOnly}
+                    value={mail.title}
+                    type="text"
+                    className="
     w-full
     px-3 py-2
     border border-gray-300
@@ -95,24 +97,24 @@ export default function EventInvitationPage() {
     focus:border-blue-500
     focus:ring-1 focus:ring-blue-500
                                 "
-              />
-            )}
-          </label>
-        </div>
+                  />
+                )}
+              </label>
+            </div>
 
-        {/* 本文 */}
-        <div style={{ marginBottom: 16 }}>
-          <label>
-            <div>メール本文</div>
-            {mode === 'view' && (
-              <textarea
-                value={mail.body}
-                disabled={isReadOnly}
-                onChange={(e) =>
-                  setMail({ ...mail, body: e.target.value })
-                }
-                rows={8}
-                className="
+            {/* 本文 */}
+            <div style={{ marginBottom: 16 }}>
+              <label>
+                <div>メール本文</div>
+                {mode === 'view' && (
+                  <textarea
+                    value={mail.body}
+                    disabled={isReadOnly}
+                    onChange={(e) =>
+                      setMail({ ...mail, body: e.target.value })
+                    }
+                    rows={12}
+                    className="
     w-full
     px-3 py-2
     border border-gray-300
@@ -124,17 +126,17 @@ export default function EventInvitationPage() {
     disabled:cursor-not-allowed
     focus:outline-none
   "
-              />
-            )}
-            {(mode === 'create' || mode === 'edit') && (
-              <textarea
-                value={mail.body}
-                disabled={isReadOnly}
-                onChange={(e) =>
-                  setMail({ ...mail, body: e.target.value })
-                }
-                rows={8}
-                className="
+                  />
+                )}
+                {(mode === 'create' || mode === 'edit') && (
+                  <textarea
+                    value={mail.body}
+                    disabled={isReadOnly}
+                    onChange={(e) =>
+                      setMail({ ...mail, body: e.target.value })
+                    }
+                    rows={12}
+                    className="
     w-full
     px-3 py-2
     border border-gray-300
@@ -144,28 +146,38 @@ export default function EventInvitationPage() {
     focus:border-blue-500
     focus:ring-1 focus:ring-blue-500
   "
-              />
+                  />
+                )}
+              </label>
+            </div>
+          </section>
+
+
+          {/* フッター操作 */}
+          <footer style={{ marginTop: 16 }}>
+            {mode !== 'view' && (
+              <button
+                onClick={handleSave}
+                className="
+    inline-flex items-center justify-center
+    rounded-md px-6 py-2
+    text-base font-medium text-blue-600
+    hover:bg-blue-100
+    disabled:opacity-50
+  "
+              >
+                保存
+              </button>
             )}
-          </label>
+
+            {mode === 'view' && (
+              <p style={{ color: '#666' }}>
+                このメールは送付済みのため編集できません
+              </p>
+            )}
+          </footer>
         </div>
-      </section>
-
-      {/* フッター操作 */}
-      <footer style={{ marginTop: 32 }}>
-        {mode !== 'view' && (
-          <button
-            onClick={handleSave}
-          >
-            保存
-          </button>
-        )}
-
-        {mode === 'view' && (
-          <p style={{ color: '#666' }}>
-            このメールは送付済みのため編集できません
-          </p>
-        )}
-      </footer>
+      </div>
     </div>
   );
 }
