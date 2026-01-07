@@ -7,7 +7,6 @@ type Mode = 'create' | 'edit' | 'view';
 type EventMail = {
   title: string;
   body: string;
-  customDataJson: string;
 };
 
 export default function EventInvitationPage() {
@@ -24,10 +23,11 @@ export default function EventInvitationPage() {
    * 仮データ
    * ※ backendできたら fetch に置き換える想定
    */
+
+  //setMode('view'); // 仮：初期状態を設定
   const [mail, setMail] = useState<EventMail>({
-    title: '',
-    body: '',
-    customDataJson: '{}',
+    title: '初心者でもわかるコードテスト入門',
+    body: 'この度はイベントにご参加いただき、誠にありがとうございます。\n\nイベントの詳細情報は以下の通りです。\n\n日時: 2024年7月15日 14:00〜16:00\n場所: 東京都渋谷区〇〇ビル 3階 会議室A\n内容: コードテストの基礎から応用までを学びます。\n\n当日は筆記用具をご持参ください。\n\nそれでは、イベントでお会いできるのを楽しみにしております。\n\nよろしくお願いいたします。\n\nイベント運営チーム',
   });
 
   const isReadOnly = mode === 'view';
@@ -38,19 +38,15 @@ export default function EventInvitationPage() {
     setMode('edit');
   };
 
-  const handleJsonChange = (value: string) => {
-    setMail({ ...mail, customDataJson: value });
-  };
-
   return (
 
-    <div style={{ maxWidth: 800,margin: '0 auto', padding: 24 }}>
+    <div style={{ maxWidth: 800, margin: '0 auto', padding: 24 }}>
       <header style={{ marginBottom: 24 }}>
-        <h1>イベントメール</h1>
-
-        <p style={{ color: '#666', marginTop: 8 }}>
-          現在のモード: <strong>{mode}</strong>
-        </p>
+        <h1 className="text-2xl">イベントメール
+          {mode === 'create' && 'の作成'}
+          {mode === 'edit' && 'の編集'}
+          {mode === 'view' && 'の閲覧'}
+        </h1>
       </header>
 
       <section>
@@ -58,15 +54,49 @@ export default function EventInvitationPage() {
         <div style={{ marginBottom: 16 }}>
           <label>
             <div>メールタイトル</div>
-            <input
-              type="text"
-              value={mail.title}
-              disabled={isReadOnly}
-              onChange={(e) =>
-                setMail({ ...mail, title: e.target.value })
-              }
-              style={{ width: '100%' , backgroundColor: '#999999'}}
-            />
+            {mode === 'view' && (
+              <input
+                type="text"
+                value={mail.title}
+                disabled={isReadOnly}
+                onChange={(e) =>
+                  setMail({ ...mail, title: e.target.value })
+                }
+                className="
+    w-full
+    px-3 py-2
+    border border-gray-300
+    rounded-md
+    bg-white
+    disabled:bg-gray-100
+    disabled:border-gray-200
+    disabled:text-gray-500
+    disabled:cursor-not-allowed
+    focus:outline-none
+    focus:ring-1 focus:ring-blue-500
+  "
+              />
+            )}
+            {(mode === 'create' || mode === 'edit') && (
+              <input
+                onChange={(e) =>
+                  setMail({ ...mail, title: e.target.value })
+                }
+                disabled={isReadOnly}
+                value={mail.title}
+                type="text"
+                className="
+    w-full
+    px-3 py-2
+    border border-gray-300
+    rounded-md
+    bg-white
+    focus:outline-none
+    focus:border-blue-500
+    focus:ring-1 focus:ring-blue-500
+                                "
+              />
+            )}
           </label>
         </div>
 
@@ -74,18 +104,50 @@ export default function EventInvitationPage() {
         <div style={{ marginBottom: 16 }}>
           <label>
             <div>メール本文</div>
-            <textarea
-              value={mail.body}
-              disabled={isReadOnly}
-              onChange={(e) =>
-                setMail({ ...mail, body: e.target.value })
-              }
-              rows={8}
-              style={{ width: '100%' , backgroundColor: '#999999'}}
-            />
+            {mode === 'view' && (
+              <textarea
+                value={mail.body}
+                disabled={isReadOnly}
+                onChange={(e) =>
+                  setMail({ ...mail, body: e.target.value })
+                }
+                rows={8}
+                className="
+    w-full
+    px-3 py-2
+    border border-gray-300
+    rounded-md
+    bg-white
+    disabled:bg-gray-100
+    disabled:border-gray-200
+    disabled:text-gray-500
+    disabled:cursor-not-allowed
+    focus:outline-none
+  "
+              />
+            )}
+            {(mode === 'create' || mode === 'edit') && (
+              <textarea
+                value={mail.body}
+                disabled={isReadOnly}
+                onChange={(e) =>
+                  setMail({ ...mail, body: e.target.value })
+                }
+                rows={8}
+                className="
+    w-full
+    px-3 py-2
+    border border-gray-300
+    rounded-md
+    bg-white
+    focus:outline-none
+    focus:border-blue-500
+    focus:ring-1 focus:ring-blue-500
+  "
+              />
+            )}
           </label>
         </div>
-
       </section>
 
       {/* フッター操作 */}
