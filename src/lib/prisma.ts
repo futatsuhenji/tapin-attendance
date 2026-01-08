@@ -2,6 +2,7 @@ import { PrismaClient } from '@/generated/prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { Pool } from 'pg';
 
+export { PrismaClientKnownRequestError } from '@/generated/prisma/internal/prismaNamespace';
 export type { TransactionClient } from '@/generated/prisma/internal/prismaNamespace';
 
 

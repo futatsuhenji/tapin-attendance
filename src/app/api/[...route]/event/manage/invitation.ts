@@ -2,7 +2,7 @@ import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
 
-import { prisma } from '@/lib/prisma';
+import { PrismaClientKnownRequestError, prisma } from '@/lib/prisma';
 
 import type { TransactionClient } from '@/lib/prisma';
 
@@ -52,7 +52,7 @@ const app = new Hono()
                             await tx.eventMail.create({ data: { eventId, title, content } });
                         } catch (e) {
                             // eslint-disable-next-line unicorn/prefer-ternary
-                            if (e instanceof Error && e.name === 'P2002') {
+                            if (e instanceof PrismaClientKnownRequestError && e.code === 'P2002') {
                                 return c.json({ message: 'Mail already exists' }, 409);
                             } else {
                                 return c.json({ message: 'Unknown error' }, 500);
