@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
 
+import { transporter } from '@/lib/nodemailer';
 import { PrismaClientKnownRequestError, prisma } from '@/lib/prisma';
 
 import type { TransactionClient } from '@/lib/prisma';
@@ -117,6 +118,37 @@ const app = new Hono()
                         if (mail) {
                             await tx.eventMail.delete({ where: { eventId } });
                             return c.json({ message: 'Mail deleted' }, 200);
+                        } else {
+                            return c.json({ message: 'Mail not found' }, 404);
+                        }
+                    } else {
+                        return c.json({ message: 'Event not found' }, 404);
+                    }
+                } else {
+                    return c.json({ message: 'Event group not found' }, 404);
+                }
+            });
+        },
+    )
+    .post('/send',
+        async (c) => {
+            const groupId = c.req.param('groupId')!;
+            const eventId = c.req.param('eventId')!;
+            return await prisma.$transaction(async (tx) => {
+                if (await tx.eventGroup.findUnique({ where: { id: groupId } })) {
+                    if (await tx.event.findUnique({ where: { id: eventId } })) {
+                        const mail = await tx.eventMail.findUnique({ where: { eventId } });
+                        if (mail) {
+                            const members = await tx.attendance.findMany({ where: { eventId }, select: { user: { select: { email: true } } } });
+                            const addresses = members.map((member) => member.user.email);
+                            await transporter.sendMail({
+                                from: `Tap'in出欠 <${process.env.SMTP_USER}>`,
+                                to: process.env.SMTP_USER,
+                                bcc: addresses,
+                                subject: mail.title,
+                                text: mail.content || '',
+                            });
+                            return c.json({ message: 'Mails sent' }, 201);
                         } else {
                             return c.json({ message: 'Mail not found' }, 404);
                         }
