@@ -2,6 +2,8 @@ import { PrismaClient } from '@/generated/prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { Pool } from 'pg';
 
+export type { TransactionClient } from '@/generated/prisma/internal/prismaNamespace';
+
 
 const globalForPrisma = globalThis as unknown as {
     prisma?: PrismaClient;

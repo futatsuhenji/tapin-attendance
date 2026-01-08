@@ -4,6 +4,14 @@ import { z } from 'zod';
 
 import { prisma } from '@/lib/prisma';
 
+import type { TransactionClient } from '@/lib/prisma';
+
+
+async function isMailSent({ tx, eventId }: {tx: TransactionClient; eventId: string}): Promise<boolean> {
+    return !!(await tx.attendance.findFirst({ where: { eventId } }));
+}
+
+
 const app = new Hono()
     .get('/',
         async (c) => {
@@ -13,7 +21,12 @@ const app = new Hono()
                 if (await tx.eventGroup.findUnique({ where: { id: groupId } })) {
                     if (await tx.event.findUnique({ where: { id: eventId } })) {
                         const mail = await tx.eventMail.findUnique({ select: { title: true, content: true }, where: { eventId } });
-                        return mail ? c.json(mail) : c.json({ message: 'Mail not found' }, 404);
+                        if (mail) {
+                            const sent = await isMailSent({ tx, eventId });
+                            return c.json({ ...mail, isSent: sent });
+                        } else {
+                            return c.json({ message: 'Mail not found' }, 404);
+                        }
                     } else {
                         return c.json({ message: 'Event not found' }, 404);
                     }
@@ -66,6 +79,9 @@ const app = new Hono()
             const { title, content } = c.req.valid('json');
             // eslint-disable-next-line sonarjs/cognitive-complexity
             return await prisma.$transaction(async (tx) => {
+                if (await isMailSent({ tx, eventId })) {
+                    return c.json({ message: 'It\'s no use crying over spilt milk' }, 400);
+                }
                 if (await tx.eventGroup.findUnique({ where: { id: groupId } })) {
                     if (await tx.event.findUnique({ where: { id: eventId } })) {
                         const mail = await tx.eventMail.findUnique({ where: { eventId } });
@@ -92,6 +108,9 @@ const app = new Hono()
             const groupId = c.req.param('groupId')!;
             const eventId = c.req.param('eventId')!;
             return await prisma.$transaction(async (tx) => {
+                if (await isMailSent({ tx, eventId })) {
+                    return c.json({ message: 'It\'s no use crying over spilt milk' }, 400);
+                }
                 if (await tx.eventGroup.findUnique({ where: { id: groupId } })) {
                     if (await tx.event.findUnique({ where: { id: eventId } })) {
                         const mail = await tx.eventMail.findUnique({ where: { eventId } });
