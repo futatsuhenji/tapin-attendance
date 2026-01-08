@@ -15,6 +15,7 @@ datasource db {
   extensions = [citext]
 }
 
+/// ユーザー
 model User {
   id        String   @id @default(cuid())
   email     String   @unique @db.Citext
@@ -38,6 +39,7 @@ model User {
   @@map("users")
 }
 
+/// イベントグループ
 model EventGroup {
   id          String   @id @default(cuid())
   name        String
@@ -53,6 +55,7 @@ model EventGroup {
   @@map("event_groups")
 }
 
+/// イベントグループ管理者
 model EventGroupAdministrator {
   groupId   String   @map("group_id")
   userId    String   @map("user_id")
@@ -66,6 +69,7 @@ model EventGroupAdministrator {
   @@map("event_group_administrators")
 }
 
+/// イベント
 model Event {
   id                      String    @id @default(cuid())
   groupId                 String    @map("group_id")
@@ -97,6 +101,7 @@ model Event {
   @@map("events")
 }
 
+/// イベント管理者
 model EventAdministrator {
   eventId   String   @map("event_id")
   userId    String   @map("user_id")
@@ -110,6 +115,7 @@ model EventAdministrator {
   @@map("event_administrators")
 }
 
+/// イベント招待メール
 model EventMail {
   eventId   String   @id @map("event_id")
   title     String
@@ -123,6 +129,7 @@ model EventMail {
   @@map("event_mails")
 }
 
+/// アンケート種別
 enum SurveyType {
   PRE_EVENT
   POST_EVENT
@@ -131,6 +138,7 @@ enum SurveyType {
   @@map("SURVEY_TYPE")
 }
 
+/// アンケート
 model Survey {
   id        String     @id @default(cuid())
   eventId   String     @map("event_id")
@@ -146,6 +154,7 @@ model Survey {
   @@map("surveys")
 }
 
+/// アンケート回答
 model SurveyResponse {
   surveyId  String   @map("survey_id")
   userId    String   @map("user_id")
@@ -160,14 +169,17 @@ model SurveyResponse {
   @@map("survey_responses")
 }
 
+/// 出欠種別（招待未送信を含む）
 enum AttendanceType {
   PRESENCE
   PRESENCE_PARTIALLY
   ABSENCE
+  UNSENT
 
   @@map("ATTENDANCE_TYPE")
 }
 
+/// 出欠情報兼メール送信管理
 model Attendance {
   eventId      String          @map("event_id")
   userId       String          @map("user_id")
@@ -185,6 +197,7 @@ model Attendance {
   @@map("attendances")
 }
 
+/// 来場情報
 model Reception {
   eventId    String   @map("event_id")
   visitorId  String   @map("visitor_id")
@@ -199,6 +212,7 @@ model Reception {
   @@map("receptions")
 }
 
+/// 料金徴収情報
 model EventFee {
   eventId   String   @map("event_id")
   visitorId String   @map("visitor_id")
@@ -214,6 +228,7 @@ model EventFee {
   @@map("event_fees")
 }
 
+/// 一斉送信メール
 model MassMail {
   id              String   @id @default(cuid())
   eventId         String   @map("event_id")
@@ -232,6 +247,7 @@ model MassMail {
   @@map("mass_mails")
 }
 
+/// 一斉送信メール送信管理
 model MassMailTargets {
   mailId       String   @map("mail_id")
   targetId     String   @map("target_id")
@@ -247,6 +263,7 @@ model MassMailTargets {
   @@map("mass_mail_targets")
 }
 
+/// ダイレクトメール
 model DirectMail {
   id              String   @id @default(cuid())
   eventId         String   @map("event_id")
