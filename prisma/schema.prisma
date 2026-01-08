@@ -169,12 +169,12 @@ model SurveyResponse {
   @@map("survey_responses")
 }
 
-/// 出欠種別（招待未送信を含む）
+/// 出欠種別（未回答を含む）
 enum AttendanceType {
   PRESENCE
   PRESENCE_PARTIALLY
   ABSENCE
-  UNSENT
+  UNANSWERED
 
   @@map("ATTENDANCE_TYPE")
 }

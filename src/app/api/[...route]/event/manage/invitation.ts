@@ -9,7 +9,7 @@ import type { TransactionClient } from '@/lib/prisma';
 
 
 async function isMailSent({ tx, eventId }: {tx: TransactionClient; eventId: string}): Promise<boolean> {
-    return !!(await tx.attendance.findFirst({ where: { eventId } }));
+    return !(await tx.attendance.findFirst({ where: { eventId, attendance: null } }));
 }
 
 
@@ -148,6 +148,7 @@ const app = new Hono()
                                 subject: mail.title,
                                 text: mail.content || '',
                             });
+                            await tx.attendance.updateMany({ where: { eventId }, data: { 'attendance': 'UNANSWERED' } });
                             return c.json({ message: 'Mails sent' }, 201);
                         } else {
                             return c.json({ message: 'Mail not found' }, 404);
