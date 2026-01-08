@@ -5,66 +5,66 @@ import { useState } from 'react';
 type Mode = 'create' | 'edit' | 'view';
 
 type EventMail = {
-  title: string;
-  body: string;
+    title: string;
+    body: string;
 };
 
 export default function EventInvitationPage() {
 
-  /**
-   * 仮：状態切り替え
-   * - create: 未作成
-   * - edit: 保存済み
-   * - view: 送付済み
-   */
-  const [mode, setMode] = useState<Mode>('create');
+    /**
+     * 仮：状態切り替え
+     * - create: 未作成
+     * - edit: 保存済み
+     * - view: 送付済み
+     */
+    const [mode, setMode] = useState<Mode>('create');
 
-  /**
-   * 仮データ
-   * ※ backendできたら fetch に置き換える想定
-   */
+    /**
+     * 仮データ
+     * ※ backendできたら fetch に置き換える想定
+     */
 
-  //setMode('view'); // 仮：初期状態を設定
-  const [mail, setMail] = useState<EventMail>({
-    title: '初心者でもわかるコードテスト入門',
-    body: 'この度はイベントにご参加いただき、誠にありがとうございます。\n\nイベントの詳細情報は以下の通りです。\n\n日時: 2024年7月15日 14:00〜16:00\n場所: 東京都渋谷区〇〇ビル 3階 会議室A\n内容: コードテストの基礎から応用までを学びます。\n\n当日は筆記用具をご持参ください。\n\nそれでは、イベントでお会いできるのを楽しみにしております。\n\nよろしくお願いいたします。\n\nイベント運営チーム',
-  });
+    //setMode('view'); // 仮：初期状態を設定
+    const [mail, setMail] = useState<EventMail>({
+        title: '初心者でもわかるコードテスト入門',
+        body: 'この度はイベントにご参加いただき、誠にありがとうございます。\n\nイベントの詳細情報は以下の通りです。\n\n日時: 2024年7月15日 14:00〜16:00\n場所: 東京都渋谷区〇〇ビル 3階 会議室A\n内容: コードテストの基礎から応用までを学びます。\n\n当日は筆記用具をご持参ください。\n\nそれでは、イベントでお会いできるのを楽しみにしております。\n\nよろしくお願いいたします。\n\nイベント運営チーム',
+    });
 
-  const isReadOnly = mode === 'view';
+    const isReadOnly = mode === 'view';
 
-  const handleSave = () => {
-    // 仮保存処理
-    console.log('save', mail);
-    setMode('edit');
-  };
+    const handleSave = () => {
+        // 仮保存処理
+        console.log('save', mail);
+        setMode('edit');
+    };
 
-  return (
+    return (
 
-    <div style={{ maxWidth: 1200, margin: '0 auto', padding: 24 }}>
+        <div style={{ maxWidth: 1200, margin: '0 auto', padding: 24 }}>
 
-      <div className="min-h-screen bg-gray-50 py-15 px-4">
-        <div className="mx-auto bg-white max-w-5xl min-h-[70vh] rounded-none p-8 shadow-md">
-          <header style={{ marginBottom: 24 }}>
-            <h1 className="text-2xl">イベントメール
-              {mode === 'create' && 'の作成'}
-              {mode === 'edit' && 'の編集'}
-              {mode === 'view' && 'の閲覧'}
-            </h1>
-          </header>
-          <section>
-            {/* タイトル */}
-            <div style={{ marginBottom: 16 }}>
-              <label>
-                <div>メールタイトル</div>
-                {mode === 'view' && (
-                  <input
-                    type="text"
-                    value={mail.title}
-                    disabled={isReadOnly}
-                    onChange={(e) =>
-                      setMail({ ...mail, title: e.target.value })
-                    }
-                    className="
+            <div className="min-h-screen bg-gray-50 py-15 px-4">
+                <div className="mx-auto bg-white max-w-5xl min-h-[70vh] rounded-none p-8 shadow-md">
+                    <header style={{ marginBottom: 24 }}>
+                        <h1 className="text-2xl">イベントメール
+                            {mode === 'create' && 'の作成'}
+                            {mode === 'edit' && 'の編集'}
+                            {mode === 'view' && 'の閲覧'}
+                        </h1>
+                    </header>
+                    <section>
+                        {/* タイトル */}
+                        <div style={{ marginBottom: 16 }}>
+                            <label>
+                                <div>メールタイトル</div>
+                                {mode === 'view' && (
+                                    <input
+                                        type="text"
+                                        value={mail.title}
+                                        disabled={isReadOnly}
+                                        onChange={(e) =>
+                                            setMail({ ...mail, title: e.target.value })
+                                        }
+                                        className="
     w-full
     px-3 py-2
     border border-gray-300
@@ -77,17 +77,17 @@ export default function EventInvitationPage() {
     focus:outline-none
     focus:ring-1 focus:ring-blue-500
   "
-                  />
-                )}
-                {(mode === 'create' || mode === 'edit') && (
-                  <input
-                    onChange={(e) =>
-                      setMail({ ...mail, title: e.target.value })
-                    }
-                    disabled={isReadOnly}
-                    value={mail.title}
-                    type="text"
-                    className="
+                                    />
+                                )}
+                                {(mode === 'create' || mode === 'edit') && (
+                                    <input
+                                        onChange={(e) =>
+                                            setMail({ ...mail, title: e.target.value })
+                                        }
+                                        disabled={isReadOnly}
+                                        value={mail.title}
+                                        type="text"
+                                        className="
     w-full
     px-3 py-2
     border border-gray-300
@@ -97,24 +97,24 @@ export default function EventInvitationPage() {
     focus:border-blue-500
     focus:ring-1 focus:ring-blue-500
                                 "
-                  />
-                )}
-              </label>
-            </div>
+                                    />
+                                )}
+                            </label>
+                        </div>
 
-            {/* 本文 */}
-            <div style={{ marginBottom: 16 }}>
-              <label>
-                <div>メール本文</div>
-                {mode === 'view' && (
-                  <textarea
-                    value={mail.body}
-                    disabled={isReadOnly}
-                    onChange={(e) =>
-                      setMail({ ...mail, body: e.target.value })
-                    }
-                    rows={12}
-                    className="
+                        {/* 本文 */}
+                        <div style={{ marginBottom: 16 }}>
+                            <label>
+                                <div>メール本文</div>
+                                {mode === 'view' && (
+                                    <textarea
+                                        value={mail.body}
+                                        disabled={isReadOnly}
+                                        onChange={(e) =>
+                                            setMail({ ...mail, body: e.target.value })
+                                        }
+                                        rows={12}
+                                        className="
     w-full
     px-3 py-2
     border border-gray-300
@@ -126,17 +126,17 @@ export default function EventInvitationPage() {
     disabled:cursor-not-allowed
     focus:outline-none
   "
-                  />
-                )}
-                {(mode === 'create' || mode === 'edit') && (
-                  <textarea
-                    value={mail.body}
-                    disabled={isReadOnly}
-                    onChange={(e) =>
-                      setMail({ ...mail, body: e.target.value })
-                    }
-                    rows={12}
-                    className="
+                                    />
+                                )}
+                                {(mode === 'create' || mode === 'edit') && (
+                                    <textarea
+                                        value={mail.body}
+                                        disabled={isReadOnly}
+                                        onChange={(e) =>
+                                            setMail({ ...mail, body: e.target.value })
+                                        }
+                                        rows={12}
+                                        className="
     w-full
     px-3 py-2
     border border-gray-300
@@ -146,38 +146,38 @@ export default function EventInvitationPage() {
     focus:border-blue-500
     focus:ring-1 focus:ring-blue-500
   "
-                  />
-                )}
-              </label>
-            </div>
-          </section>
+                                    />
+                                )}
+                            </label>
+                        </div>
+                    </section>
 
 
-          {/* フッター操作 */}
-          <footer style={{ marginTop: 16 }}>
-            {mode !== 'view' && (
-              <button
-                onClick={handleSave}
-                className="
+                    {/* フッター操作 */}
+                    <footer style={{ marginTop: 16 }}>
+                        {mode !== 'view' && (
+                            <button
+                                onClick={handleSave}
+                                className="
     inline-flex items-center justify-center
     rounded-md px-6 py-2
     text-base font-medium text-blue-600
     hover:bg-blue-100
     disabled:opacity-50
   "
-              >
-                保存
-              </button>
-            )}
+                            >
+                                保存
+                            </button>
+                        )}
 
-            {mode === 'view' && (
-              <p style={{ color: '#666' }}>
-                このメールは送付済みのため編集できません
-              </p>
-            )}
-          </footer>
+                        {mode === 'view' && (
+                            <p style={{ color: '#666' }}>
+                                このメールは送付済みのため編集できません
+                            </p>
+                        )}
+                    </footer>
+                </div>
+            </div>
         </div>
-      </div>
-    </div>
-  );
+    );
 }
