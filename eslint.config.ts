@@ -1,4 +1,4 @@
-import { defineConfig } from 'eslint/config';
+import { defineConfig, globalIgnores } from 'eslint/config';
 
 // ESLint plugins
 import js from '@eslint/js';
@@ -11,6 +11,7 @@ import tsdoc from 'eslint-plugin-tsdoc';
 import unicorn from 'eslint-plugin-unicorn';
 
 export default defineConfig([
+    globalIgnores(['src/generated/**']),
     js.configs.recommended,
     sonarjs.configs.recommended,
     unicorn.configs.recommended,
