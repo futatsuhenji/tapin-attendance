@@ -8,7 +8,7 @@ export default function InvitationLayout({
             style={{
                 minHeight: '90vh',
                 backgroundColor: '#f5f7fa',
-                color: '#111111'
+                color: '#111111',
             }}
         >
             {children}
