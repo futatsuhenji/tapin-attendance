@@ -1,7 +1,15 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useParams } from 'next/navigation';
 
+import { honoClient } from '@/lib/hono';
+
+/**
+ * - create: 未作成
+ * - edit: 保存済み
+ * - view: 送付済み
+ */
 type Mode = 'create' | 'edit' | 'view';
 
 type EventMail = {
@@ -11,32 +19,82 @@ type EventMail = {
 
 export default function EventInvitationPage() {
 
-    /**
-     * 仮：状態切り替え
-     * - create: 未作成
-     * - edit: 保存済み
-     * - view: 送付済み
-     */
     const [mode, setMode] = useState<Mode>('create');
 
-    /**
-     * 仮データ
-     * ※ backendできたら fetch に置き換える想定
-     */
-
-    //setMode('view'); // 仮：初期状態を設定
     const [mail, setMail] = useState<EventMail>({
-        title: '初心者でもわかるコードテスト入門',
-        body: 'この度はイベントにご参加いただき、誠にありがとうございます。\n\nイベントの詳細情報は以下の通りです。\n\n日時: 2024年7月15日 14:00〜16:00\n場所: 東京都渋谷区〇〇ビル 3階 会議室A\n内容: コードテストの基礎から応用までを学びます。\n\n当日は筆記用具をご持参ください。\n\nそれでは、イベントでお会いできるのを楽しみにしております。\n\nよろしくお願いいたします。\n\nイベント運営チーム',
+        title: '',
+        body: '',
     });
 
     const isReadOnly = mode === 'view';
 
+    const { groupId, eventId } = useParams<{ groupId: string; eventId: string }>();
+
     const handleSave = () => {
-        // 仮保存処理
-        console.log('save', mail);
-        setMode('edit');
+        if (!groupId && !eventId) return;
+        (async () => {
+            if (mode === 'create') {
+                await honoClient.api.event[':groupId'][':eventId'].manage.invitation.$post({
+                    param: {
+                        groupId,
+                        eventId,
+                    },
+                    json: {
+                        title: mail.title,
+                        content: mail.body,
+                    },
+                });
+                setMode('edit');
+            } else {
+                await honoClient.api.event[':groupId'][':eventId'].manage.invitation.$patch({
+                    param: {
+                        groupId,
+                        eventId,
+                    },
+                    json: {
+                        title: mail.title,
+                        content: mail.body,
+                    },
+                });
+            }
+        })();
     };
+
+    useEffect(() => {
+        const fetchMail = async () => {
+            try {
+                const response = await honoClient.api.event[':groupId'][':eventId'].manage.invitation.$get({
+                    param: {
+                        groupId,
+                        eventId,
+                    },
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    setMail({
+                        title: data.title,
+                        body: data.content || '',
+                    });
+                    if (data.isSent) {
+                        setMode('view');
+                    } else {
+                        setMode('edit');
+                    }
+                } else if (response.status === 404) {
+                    setMode('create');
+                }
+            } catch (e) {
+                console.error('Failed to fetch mail:', e);
+                // エラー時は作成モードにフォールバック
+                setMode('create');
+            }
+        };
+
+        if (groupId && eventId) {
+            fetchMail();
+        }
+    }, [groupId, eventId]);
 
     return (
 
