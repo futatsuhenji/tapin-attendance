@@ -7,12 +7,11 @@ import { transporter } from '@/lib/nodemailer';
 import { getEmailVerificationToken, validateEmailVerificationToken, issueJwt } from '@/utils/auth';
 
 
-
 const app = new Hono()
     .post('/request',
-        zValidator('json', z.object({ email: z.email() })),
+        zValidator('json', z.object({ email: z.email(), redirectUrl: z.string().optional() })),
         async (c) => {
-            const { email } = c.req.valid('json');
+            const { email, redirectUrl } = c.req.valid('json');
             const token = await getEmailVerificationToken(email);
             await transporter.sendMail({
                 from: `Tap'in出欠 <${process.env.SMTP_USER}>`,
@@ -24,7 +23,7 @@ const app = new Hono()
                         <body>
                             <p>Tap'in出欠をご利用いただき、ありがとうございます。</p>
                             <p>以下のリンクをクリックして、メールアドレスの認証を完了してください。</p>
-                            <p><a href="${process.env.NEXT_PUBLIC_BASE_URL ?? 'localhost:3000'}/api/auth/email/verify?token=${token}">メールアドレスを認証する</a></p>
+                            <p><a href="http${process.env.NODE_ENV === 'production' ? 's' : ''}://${process.env.NEXT_PUBLIC_BASE_URL ?? 'localhost:3000'}/api/auth/email/verify?token=${token}${redirectUrl ? `&redirectUrl=${encodeURIComponent(redirectUrl)}` : ''}">メールアドレスを認証する</a></p>
                             <p>このリンクの有効期限は5分間です。</p>
                             <p>もしこのメールに心当たりがない場合は、破棄してください。</p>
                         </body>
@@ -35,9 +34,9 @@ const app = new Hono()
         },
     )
     .get('/verify',
-        zValidator('query', z.object({ token: z.string() })),
+        zValidator('query', z.object({ token: z.string(), redirectUrl: z.string().optional() })),
         async (c) => {
-            const { token } = c.req.valid('query');
+            const { token, redirectUrl } = c.req.valid('query');
             let email;
             try {
                 email = await validateEmailVerificationToken(token);
@@ -54,7 +53,7 @@ const app = new Hono()
                     sameSite: 'Strict',
                     priority: 'High',
                 });
-                return c.redirect('/');
+                return c.redirect(redirectUrl ?? '/');
             } else {
                 return c.json({ message: 'Invalid or expired token' }, 400);
             }
