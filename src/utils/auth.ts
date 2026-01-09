@@ -5,7 +5,7 @@ import { sha256 } from 'hono/utils/crypto';
 import { SignJWT, jwtVerify } from 'jose';
 import { cookies } from 'next/headers';
 
-import { redis } from '@/lib/redis';
+import { getRedisClient } from '@/lib/redis';
 
 import type { Context } from 'hono';
 import type { JWTPayload } from 'hono/utils/jwt/types';
@@ -19,6 +19,7 @@ import type { JWTPayload } from 'hono/utils/jwt/types';
  */
 export async function getEmailVerificationToken(email: string): Promise<string> {
     const token = randomUUID();
+    const redis = await getRedisClient();
     await redis.set(`email-verification:${await sha256(token)}`, email, { expiration: { type: 'EX', value: 60 * 5 } });
     return token;
 }
@@ -38,6 +39,7 @@ export async function validateEmailVerificationToken(token: string): Promise<str
         end
         return val
     `;
+    const redis = await getRedisClient();
     const result = await redis.eval(lua, { keys: [`email-verification:${await sha256(token)}`] });
     if (typeof result === 'string') {
         return result;
