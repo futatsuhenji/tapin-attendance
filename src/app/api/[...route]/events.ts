@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 
-import manage from './event/manage';
+import manage from './events/manage';
 import ping from './ping';
 
 const app = new Hono()
