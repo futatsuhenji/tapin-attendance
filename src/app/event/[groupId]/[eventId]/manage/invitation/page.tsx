@@ -25,14 +25,17 @@ export default function EventInvitationPage() {
         title: '',
         body: '',
     });
+    const [isSaving, setIsSaving] = useState(false);
+    const [isSending, setIsSending] = useState(false);
 
     const isReadOnly = mode === 'view';
 
     const { groupId, eventId } = useParams<{ groupId: string; eventId: string }>();
 
-    const handleSave = () => {
-        if (!groupId && !eventId) return;
-        (async () => {
+    const handleSave = async (): Promise<boolean> => {
+        if (!groupId || !eventId) return false;
+        setIsSaving(true);
+        try {
             if (mode === 'create') {
                 await honoClient.api.event[':groupId'][':eventId'].manage.invitation.$post({
                     param: {
@@ -57,7 +60,35 @@ export default function EventInvitationPage() {
                     },
                 });
             }
-        })();
+            return true;
+        } catch (e) {
+            console.error('Failed to save mail:', e);
+            return false;
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    const handleSend = async () => {
+        if (!groupId || !eventId) return;
+        const saved = await handleSave();
+        if (!saved) return;
+        setIsSending(true);
+        try {
+            const response = await honoClient.api.event[':groupId'][':eventId'].manage.invitation.send.$post({
+                param: {
+                    groupId,
+                    eventId,
+                },
+            });
+            if (response.ok) {
+                setMode('view');
+            }
+        } catch (e) {
+            console.error('Failed to send mail:', e);
+        } finally {
+            setIsSending(false);
+        }
     };
 
     useEffect(() => {
@@ -214,18 +245,34 @@ export default function EventInvitationPage() {
                     {/* フッター操作 */}
                     <footer style={{ marginTop: 16 }}>
                         {mode !== 'view' && (
-                            <button
-                                onClick={handleSave}
-                                className="
+                            <div className="flex gap-4">
+                                <button
+                                    onClick={handleSave}
+                                    disabled={isSaving || isSending}
+                                    className="
     inline-flex items-center justify-center
     rounded-md px-6 py-2
     text-base font-medium text-blue-600
     hover:bg-blue-100
     disabled:opacity-50
   "
-                            >
-                                保存
-                            </button>
+                                >
+                                    保存
+                                </button>
+                                <button
+                                    onClick={handleSend}
+                                    disabled={isSending || isSaving}
+                                    className="
+    inline-flex items-center justify-center
+    rounded-md px-6 py-2
+    bg-blue-600 text-white
+    hover:bg-blue-700
+    disabled:opacity-50
+  "
+                                >
+                                    {isSending ? '送信中…' : 'メール送信'}
+                                </button>
+                            </div>
                         )}
 
                         {mode === 'view' && (
