@@ -28,7 +28,7 @@ export default function EventInvitationPage() {
     const [isSaving, setIsSaving] = useState(false);
     const [isSending, setIsSending] = useState(false);
 
-    const isReadOnly = mode === 'view';
+    const canEdit = mode !== 'view';
 
     const { groupId, eventId } = useParams<{ groupId: string; eventId: string }>();
 
@@ -129,11 +129,10 @@ export default function EventInvitationPage() {
 
     return (
 
-        <div style={{ maxWidth: 1200, margin: '0 auto', padding: 24 }}>
-
-            <div className="min-h-screen bg-gray-50 py-15 px-4">
+        <div className="max-w-[1200px] mx-auto px-6 py-6">
+            <div className="min-h-screen bg-gray-50 py-16 px-4">
                 <div className="mx-auto bg-white max-w-5xl min-h-[70vh] rounded-none p-8 shadow-md">
-                    <header style={{ marginBottom: 24 }}>
+                    <header className="mb-6">
                         <h1 className="text-2xl">イベントメール
                             {mode === 'create' && 'の作成'}
                             {mode === 'edit' && 'の編集'}
@@ -142,133 +141,92 @@ export default function EventInvitationPage() {
                     </header>
                     <section>
                         {/* タイトル */}
-                        <div style={{ marginBottom: 16 }}>
+                        <div className="mb-4">
                             <label>
                                 <div>メールタイトル</div>
-                                {mode === 'view' && (
-                                    <input
-                                        type="text"
-                                        value={mail.title}
-                                        disabled={isReadOnly}
-                                        onChange={(e) =>
-                                            setMail({ ...mail, title: e.target.value })
-                                        }
-                                        className="
-    w-full
-    px-3 py-2
-    border border-gray-300
-    rounded-md
-    bg-white
-    disabled:bg-gray-100
-    disabled:border-gray-200
-    disabled:text-gray-500
-    disabled:cursor-not-allowed
-    focus:outline-none
-    focus:ring-1 focus:ring-blue-500
-  "
-                                    />
-                                )}
-                                {(mode === 'create' || mode === 'edit') && (
-                                    <input
-                                        onChange={(e) =>
-                                            setMail({ ...mail, title: e.target.value })
-                                        }
-                                        disabled={isReadOnly}
-                                        value={mail.title}
-                                        type="text"
-                                        className="
-    w-full
-    px-3 py-2
-    border border-gray-300
-    rounded-md
-    bg-white
-    focus:outline-none
-    focus:border-blue-500
-    focus:ring-1 focus:ring-blue-500
-                                "
-                                    />
-                                )}
+                                <input
+                                    type="text"
+                                    value={mail.title}
+                                    readOnly={!canEdit}
+                                    disabled={!canEdit}
+                                    onChange={(e) =>
+                                        setMail({ ...mail, title: e.target.value })
+                                    }
+                                    className={`
+                                        w-full
+                                        px-3 py-2
+                                        border border-gray-300
+                                        rounded-md
+                                        bg-white
+                                        focus:outline-none
+                                        focus:ring-1 focus:ring-blue-500
+                                        disabled:bg-gray-100
+                                        disabled:border-gray-200
+                                        disabled:text-gray-500
+                                        disabled:cursor-not-allowed
+                                    `}
+                                />
                             </label>
                         </div>
 
                         {/* 本文 */}
-                        <div style={{ marginBottom: 16 }}>
+                        <div className="mb-4">
                             <label>
                                 <div>メール本文</div>
-                                {mode === 'view' && (
-                                    <textarea
-                                        value={mail.body}
-                                        disabled={isReadOnly}
-                                        onChange={(e) =>
-                                            setMail({ ...mail, body: e.target.value })
-                                        }
-                                        rows={12}
-                                        className="
-    w-full
-    px-3 py-2
-    border border-gray-300
-    rounded-md
-    bg-white
-    disabled:bg-gray-100
-    disabled:border-gray-200
-    disabled:text-gray-500
-    disabled:cursor-not-allowed
-    focus:outline-none
-  "
-                                    />
-                                )}
-                                {(mode === 'create' || mode === 'edit') && (
-                                    <textarea
-                                        value={mail.body}
-                                        disabled={isReadOnly}
-                                        onChange={(e) =>
-                                            setMail({ ...mail, body: e.target.value })
-                                        }
-                                        rows={12}
-                                        className="
-    w-full
-    px-3 py-2
-    border border-gray-300
-    rounded-md
-    bg-white
-    focus:outline-none
-    focus:border-blue-500
-    focus:ring-1 focus:ring-blue-500
-  "
-                                    />
-                                )}
+                                <textarea
+                                    value={mail.body}
+                                    readOnly={!canEdit}
+                                    disabled={!canEdit}
+                                    onChange={(e) =>
+                                        setMail({ ...mail, body: e.target.value })
+                                    }
+                                    rows={12}
+                                    className={`
+                                        w-full
+                                        px-3 py-2
+                                        border border-gray-300
+                                        rounded-md
+                                        bg-white
+                                        focus:outline-none
+                                        focus:ring-1 focus:ring-blue-500
+                                        disabled:bg-gray-100
+                                        disabled:border-gray-200
+                                        disabled:text-gray-500
+                                        disabled:cursor-not-allowed
+                                    `}
+                                />
                             </label>
                         </div>
                     </section>
 
 
                     {/* フッター操作 */}
-                    <footer style={{ marginTop: 16 }}>
+                    <footer className="mt-4">
                         {mode !== 'view' && (
                             <div className="flex gap-4">
                                 <button
                                     onClick={handleSave}
                                     disabled={isSaving || isSending}
-                                    className="
-    inline-flex items-center justify-center
-    rounded-md px-6 py-2
-    text-base font-medium text-blue-600
-    hover:bg-blue-100
-    disabled:opacity-50
-  "
+                                    className={`
+                                        inline-flex items-center justify-center
+                                        rounded-md px-6 py-2
+                                        text-base font-medium text-blue-600
+                                        hover:bg-blue-100
+                                        disabled:opacity-50
+                                    `}
                                 >
                                     保存
                                 </button>
                                 <button
                                     onClick={handleSend}
                                     disabled={isSending || isSaving}
-                                    className="
-    inline-flex items-center justify-center
-    rounded-md px-6 py-2
-    bg-blue-600 text-white
-    hover:bg-blue-700
-    disabled:opacity-50
-  "
+                                    className={`
+                                        inline-flex items-center justify-center
+                                        rounded-md px-6 py-2
+                                        bg-blue-600 text-white
+                                        hover:bg-blue-700
+                                        disabled:opacity-50
+                                    `}
                                 >
                                     {isSending ? '送信中…' : 'メール送信'}
                                 </button>
