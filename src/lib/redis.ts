@@ -7,7 +7,7 @@ const globalForRedis = globalThis as unknown as { redis: RedisClientType };
 
 
 export const redis =
-    globalForRedis.redis ||
+    globalForRedis.redis ??
     process.env.REDIS_URL === undefined ?
         new Proxy({} as RedisClientType, { // プリレンダリング対策
             get() {

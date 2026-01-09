@@ -1,10 +1,14 @@
 import { randomUUID } from 'node:crypto';
 
+import { getCookie } from 'hono/cookie';
 import { sha256 } from 'hono/utils/crypto';
 import { SignJWT, jwtVerify } from 'jose';
+import { cookies } from 'next/headers';
 
 import { redis } from '@/lib/redis';
-import { JWTPayload } from 'hono/utils/jwt/types';
+
+import type { Context } from 'hono';
+import type { JWTPayload } from 'hono/utils/jwt/types';
 
 
 /**
@@ -54,7 +58,7 @@ interface JwtUserContent {
 
 
 /** JWTペイロード */
-type JwtPayload = JWTPayload & {
+type JwtPayload = JWTPayload & { // NOTE: J['exp']および['iat']を `Date` に変換する場合は1000倍する必要がある
     user: JwtUserContent,
 };
 
@@ -67,11 +71,9 @@ type JwtPayload = JWTPayload & {
  */
 export async function issueJwt(content: JwtUserContent): Promise<[string, JwtPayload]> {
     const secret = new TextEncoder().encode(process.env.JWT_SECRET ?? 'dev-jwt-secret');
-    const now: number = Date.now();
-    const expiresAt: Date = new Date(now + 1000 * 60 * 60 * 24 * 3);
+    const now = new Date(Date.now());
+    const expiresAt: Date = new Date(now.getTime() + 1000 * 60 * 60 * 24 * 3);
     const payload = {
-        exp: Math.floor(expiresAt.getTime() / 1000),
-        iat: Math.floor(now / 1000),
         user: content,
     } as const satisfies JwtPayload;
     return [
@@ -95,4 +97,48 @@ export async function verifyJwt(token: string): Promise<JwtPayload> {
     const secret = new TextEncoder().encode(process.env.JWT_SECRET ?? 'dev-jwt-secret');
     const { payload } = await jwtVerify(token, secret);
     return payload as unknown as JwtPayload;
+}
+
+
+/**
+ * HonoコンテキストからJWTペイロードを取得する。
+ *
+ * @param c - Honoコンテキスト
+ * @returns JWTペイロード、またはnull（JWTが存在しないか検証に失敗した場合）
+ */
+export async function getJwtFromContext(c: Context): Promise<JwtPayload | null> {
+    const token = getCookie(c, 'auth_token');
+    if (token) {
+        try {
+            const payload = await verifyJwt(token);
+            return payload;
+        } catch (e) {
+            console.error('JWT verification failed:', e);
+            return null;
+        }
+    } else {
+        return null;
+    }
+}
+
+
+/**
+ * Next.jsのCookieストアからJWTペイロードを取得する。
+ *
+ * @returns JWTペイロード、またはnull（JWTが存在しないか検証に失敗した場合）
+ */
+export async function getJwtFromCookieStore(): Promise<JwtPayload | null> {
+    const cookieStore = await cookies();
+    const token = cookieStore.get('auth_token')?.value;
+    if (token) {
+        try {
+            const payload = await verifyJwt(token);
+            return payload;
+        } catch (e) {
+            console.error('JWT verification failed:', e);
+            return null;
+        }
+    } else {
+        return null;
+    }
 }
