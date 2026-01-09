@@ -42,6 +42,8 @@ jobs:
           pnpm install
       - name: Generate types
         run: pnpm run next:typegen
+      - name: Generate Prisma Client
+        run: pnpm prisma generate
       - name: Run ESLint
         if: ${{ !inputs.autofix }}
         run: pnpm run lint
