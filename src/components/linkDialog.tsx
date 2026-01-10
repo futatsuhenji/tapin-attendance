@@ -15,7 +15,7 @@ type Props = {
     helperText?: string;
 };
 
-export default function linkDialog({
+export default function LinkDialog({
     open,
     title = 'リンクを設定',
     linkUrl,

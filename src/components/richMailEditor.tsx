@@ -187,7 +187,7 @@ export default function RichMailEditor({ initialJson, open, onSave }: Properties
                 setLinkUrl={setLinkUrl}
                 onCancel={() => setLinkDialogOpen(false)}
                 onConfirm={(linkUrl) => {
-                    linkActions.toggleLink(linkUrl)
+                    linkActions.toggleLink(linkUrl);
                     setLinkDialogOpen(false);
                 }}
             />
