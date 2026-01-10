@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 
-import { prisma } from '@/lib/prisma';
 import { getJwtFromCookieStore } from '@/utils/auth';
+import { hasEventAccessPermission, hasEventManagementPermission } from './utils/permission';
 
 import type { NextRequest } from 'next/server';
 
@@ -36,23 +36,15 @@ export async function proxy(request: NextRequest) {
                     }
                     const _groupId = reader.next()!;
                     const eventId = reader.next()!;
-                    const user = await prisma.user.findUniqueOrThrow({
-                        where: { email: jwt.user.email },
-                        select: { id: true },
-                    });
-                    if (!(await prisma.attendance.findUnique({
-                        where: { eventId_userId: { eventId, userId: user.id } },
-                        select: { userId: true },
-                    }))) {
+                    if (!(await hasEventAccessPermission(jwt.user.id, eventId))) {
+                        console.log('Forbidden access to event:', eventId, 'by user:', jwt.user.id);
                         return NextResponse.json({ message: 'Forbidden' }, { status: 403 });
                     }
                     // eslint-disable-next-line sonarjs/no-small-switch
                     switch (reader.next()) {
                         case 'manage': {
-                            if (!(await prisma.eventAdministrator.findUnique({
-                                where: { eventId_userId: { eventId, userId: user.id } },
-                                select: { userId: true },
-                            }))) {
+                            if (!(await hasEventManagementPermission(jwt.user.id, eventId))) {
+                                console.log('Forbidden management access to event:', eventId, 'by user:', jwt.user.id);
                                 return NextResponse.json({ message: 'Forbidden' }, { status: 403 });
                             }
                             break;
