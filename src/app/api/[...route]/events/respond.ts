@@ -10,6 +10,21 @@ const decisionToAttendance = (decision: Decision) =>
     decision === 'attend' ? AttendanceType.PRESENCE : AttendanceType.ABSENCE;
 
 const app = new Hono()
+    .get('/', async (c) => {
+        const groupId = c.req.param('groupId');
+        const eventId = c.req.param('eventId');
+
+        const event = await prisma.event.findUnique({
+            where: { id: eventId },
+            select: { name: true, group: { select: { name: true, id: true } } },
+        });
+
+        if (!event || event.group.id !== groupId) {
+            return c.json({ message: 'Event not found' }, 404);
+        }
+
+        return c.json({ eventName: event.name, groupName: event.group.name });
+    })
     .get('/:decision', async (c) => {
         const decision = c.req.param('decision') as Decision;
         const token = c.req.query('token');
