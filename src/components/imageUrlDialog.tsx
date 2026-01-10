@@ -46,7 +46,7 @@ export default function ImageUrlDialog({
             className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4"
             onMouseDown={(e) => {
                 // 背景クリックで閉じたい場合はここを有効化
-                // if (e.target === e.currentTarget) onCancel();
+                if (e.target === e.currentTarget) onCancel();
             }}
         >
             <div className="w-full max-w-lg rounded bg-white p-4 shadow">

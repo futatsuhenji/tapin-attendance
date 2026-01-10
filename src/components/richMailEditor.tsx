@@ -7,19 +7,21 @@ import { IconButton } from './iconButton';
 import { useRichMailEditor } from '@/hooks/useRichMailEditor';
 import { Bold, Italic, Underline, Link2, Image as ImageIcon, Minus, List, ListOrdered, Eye, Pencil } from 'lucide-react';
 
+import type { JSONContent } from '@tiptap/react';
+
 type Properties = {
-    initialJson?: any; // ここは JSONContent でもOK
-    onSave?: (payload: { json: any; html: string }) => Promise<void> | void;
+    initialJson?: JSONContent | null;
+    onSave?: (payload: { json: JSONContent; html: string }) => Promise<void> | void;
 };
 
-export default function richMailEditor({ initialJson, onSave }: Properties) {
+export default function RichMailEditor({ initialJson, onSave }: Properties) {
     const [imageDialogOpen, setImageDialogOpen] = useState(false);
     const [imageUrl, setImageUrl] = useState('');
     const [imageAlt, setImageAlt] = useState('');
     const [previewMode, setPreviewMode] = useState<'editor' | 'html'>('editor');
     const [lastSaved, setLastSaved] = useState<string>('');
 
-    const { editor, sanitizedHtml, currentColor, setCurrentColor, blockType, setBlockType, actions } =
+    const { editor, sanitizedHtml, currentColor, setCurrentColor, actions } =
         useRichMailEditor(initialJson);
 
     if (!editor) return <div className="text-slate-600">エディタを初期化中...</div>;
