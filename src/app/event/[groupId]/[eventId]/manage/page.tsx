@@ -193,6 +193,12 @@ export default function EventManagePage() {
                         イベントページへ
                     </Link>
                     <Link
+                        href={`/event/${groupId}/${eventId}/manage/administrators`}
+                        className="w-full sm:w-auto rounded-md border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm hover:border-gray-300"
+                    >
+                        管理者の追加・管理
+                    </Link>
+                    <Link
                         href={`/event/${groupId}/${eventId}/manage/event`}
                         className="w-full sm:w-auto rounded-md border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm hover:border-gray-300"
                     >
