@@ -5,6 +5,7 @@ import { z } from 'zod';
 
 import { transporter } from '@/lib/nodemailer';
 import { getEmailVerificationToken, validateEmailVerificationToken, issueJwt } from '@/utils/auth';
+import { prisma } from '@/lib/prisma';
 
 
 const app = new Hono()
@@ -37,15 +38,19 @@ const app = new Hono()
         zValidator('query', z.object({ token: z.string(), redirectUrl: z.string().optional() })),
         async (c) => {
             const { token, redirectUrl } = c.req.valid('query');
-            let email;
+            let user;
             try {
-                email = await validateEmailVerificationToken(token);
+                const email = await validateEmailVerificationToken(token);
+                user = await prisma.user.findUnique({
+                    where: { email },
+                    select: { id: true, email: true },
+                });
             } catch (e) {
                 console.error(e);
                 return c.json({ message: 'Invalid or expired token' }, 400);
             }
-            if (email) {
-                const [jwt, payload] = await issueJwt({ email });
+            if (user) {
+                const [jwt, payload] = await issueJwt({ id: user.id, email: user.email });
                 setCookie(c, 'auth_token', jwt, {
                     expires: new Date(payload.exp! * 1000),
                     httpOnly: true,
