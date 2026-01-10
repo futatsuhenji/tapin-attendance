@@ -1,12 +1,14 @@
 import { Hono } from 'hono';
 import { handle } from 'hono/vercel';
 
-import event from './event';
+import auth from './auth';
+import events from './events';
 import ping from './ping';
 
 const app = new Hono().basePath('/api');
 const route = app
-    .route('/event', event)
+    .route('/auth', auth)
+    .route('/events', events)
     .route('/ping', ping);
 
 export const GET = handle(route);
