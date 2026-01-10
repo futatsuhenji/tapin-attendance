@@ -12,13 +12,21 @@ import Color from '@tiptap/extension-color';
 import HardBreak from '@tiptap/extension-hard-break';
 import { Extension } from '@tiptap/core';
 
+
 const EnterAsHardBreak = Extension.create({
     name: 'enterAsHardBreak',
     addKeyboardShortcuts() {
         return {
             Enter: () => {
+                const view = this.editor.view;
+
+                const isComposing =
+                    view !== undefined &&
+                    'composing' in view &&
+                    Boolean((view as { composing?: boolean }).composing);
+
                 // IME変換確定などのときは邪魔しない（日本語入力対策）
-                if ((this.editor.view as any).composing) return false;
+                if (isComposing) return false;
                 return this.editor.commands.setHardBreak();
             },
             'Shift-Enter': () => {
@@ -31,7 +39,7 @@ const EnterAsHardBreak = Extension.create({
 
 
 
-type Props = {
+type Properties = {
     /**
      * DBに保存してあるcustomDataJson（Tiptap JSON）を渡す想定
      * null/undefinedなら空で開始
@@ -58,13 +66,13 @@ function isSafeHttpUrl(url: string): boolean {
         const path = u.pathname.toLowerCase();
         const looksLikeImage = /\.(png|jpe?g|webp|gif|svg)$/.test(path);
         // ここを厳密にするなら looksLikeImage === true を必須にする
-        return true && (looksLikeImage || true);
+        return looksLikeImage;
     } catch {
         return false;
     }
 }
 
-export default function RichMailEditor({ initialJson, onSave }: Props) {
+export default function richMailEditor({ initialJson, onSave }: Properties) {
     const [imageDialogOpen, setImageDialogOpen] = useState(false);
     const [imageUrl, setImageUrl] = useState('');
     const [imageAlt, setImageAlt] = useState('');
@@ -161,7 +169,7 @@ export default function RichMailEditor({ initialJson, onSave }: Props) {
         if (!editor) return;
 
         const previousUrl = editor.getAttributes('link').href as string | undefined;
-        const url = window.prompt('リンクURLを入力してください', previousUrl ?? 'https://');
+        const url = globalThis.prompt('リンクURLを入力してください', previousUrl ?? 'https://');
 
         if (url === null) return; // cancel
         const trimmed = url.trim();
@@ -204,11 +212,11 @@ export default function RichMailEditor({ initialJson, onSave }: Props) {
 
     const handlePasteJson = async () => {
         if (!editor) return;
-        const jsonStr = window.prompt('貼り付けるTiptap JSONを入力してください（全体を貼り付け）');
-        if (!jsonStr) return;
+        const jsonString = globalThis.prompt('貼り付けるTiptap JSONを入力してください（全体を貼り付け）');
+        if (!jsonString) return;
 
         try {
-            const parsed = JSON.parse(jsonStr) as JSONContent;
+            const parsed = JSON.parse(jsonString) as JSONContent;
             editor.commands.setContent(parsed);
             alert('JSONから復元しました');
         } catch {
