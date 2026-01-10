@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 
 import { getJwtFromCookieStore } from '@/utils/auth';
-import { hasEventAccessPermission, hasEventManagementPermission } from './utils/permission';
+import { hasEventAccessPermission, hasEventManagementPermission } from '@/utils/permission';
 
 import type { NextRequest } from 'next/server';
 
@@ -31,17 +31,29 @@ export async function proxy(request: NextRequest) {
             // eslint-disable-next-line sonarjs/no-small-switch
             switch (reader.next()) {
                 case 'events': {
+                    // Peek next three segments: /api/events/:groupId/:eventId/:action
+                    const seg1 = reader.next();
+                    const seg2 = reader.next();
+                    const seg3 = reader.next();
+
+                    // allow public respond endpoints without auth: /api/events/:groupId/:eventId/respond/:decision
+                    if (seg3 === 'respond') {
+                        return NextResponse.next();
+                    }
+
+                    // otherwise require authentication for event-related routes
                     if (!jwt) {
                         return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
                     }
-                    const _groupId = reader.next()!;
-                    const eventId = reader.next()!;
+
+                    const _groupId = seg1!;
+                    const eventId = seg2!;
                     if (!(await hasEventAccessPermission(jwt.user.id, eventId))) {
                         console.log('Forbidden access to event:', eventId, 'by user:', jwt.user.id);
                         return NextResponse.json({ message: 'Forbidden' }, { status: 403 });
                     }
                     // eslint-disable-next-line sonarjs/no-small-switch
-                    switch (reader.next()) {
+                    switch (seg3) {
                         case 'manage': {
                             if (!(await hasEventManagementPermission(jwt.user.id, eventId))) {
                                 console.log('Forbidden management access to event:', eventId, 'by user:', jwt.user.id);
