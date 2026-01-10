@@ -75,7 +75,7 @@ model Event {
   groupId                 String    @map("group_id")
   name                    String
   description             String?
-  place                   String
+  place                   String?
   mapUrl                  String?   @map("map_url")
   allowVisitorListSharing Boolean   @default(false) @map("allow_visitor_list_sharing")
   publishedAt             DateTime? @map("published_at") @db.Timestamptz()
