@@ -15,7 +15,7 @@ export function IconButton({
         'inline-flex h-9 w-9 items-center justify-center rounded-md border ' +
         'transition-colors select-none';
     const state = active
-        ? 'border-slate-900 bg-slate-900 text-white'
+        ? 'bg-blue-500 text-white'
         : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50';
     const dis = disabled ? 'opacity-50 pointer-events-none' : '';
 

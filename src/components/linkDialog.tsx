@@ -6,28 +6,23 @@ type Props = {
     open: boolean;
     title?: string;
 
-    imageUrl: string;
-    setImageUrl: (v: string) => void;
-
-    imageAlt: string;
-    setImageAlt: (v: string) => void;
+    linkUrl: string;
+    setLinkUrl: (v: string) => void;
 
     onCancel: () => void;
-    onConfirm: () => void;
+    onConfirm: (linkUrl: string) => void;
 
     helperText?: string;
 };
 
-export default function ImageUrlDialog({
+export default function linkDialog({
     open,
-    title = '画像URLを挿入',
-    imageUrl,
-    setImageUrl,
-    imageAlt,
-    setImageAlt,
+    title = 'リンクを設定',
+    linkUrl,
+    setLinkUrl,
     onCancel,
     onConfirm,
-    helperText = '注：メールでは外部画像が既定でブロックされる場合があります。本文が画像依存にならないようにしてください。',
+    helperText = '',
 }: Props) {
     const urlRef = useRef<HTMLInputElement | null>(null);
 
@@ -53,29 +48,15 @@ export default function ImageUrlDialog({
                 <div className="mb-2 text-base font-semibold">{title}</div>
 
                 <label className="block text-sm">
-                    画像URL（必須）
+                    URL
                     <input
                         ref={urlRef}
                         className="mt-1 w-full rounded border border-slate-300 p-2"
-                        value={imageUrl}
-                        onChange={(e) => setImageUrl(e.target.value)}
-                        placeholder="https://example.com/image.png"
+                        value={linkUrl}
+                        onChange={(e) => setLinkUrl(e.target.value)}
+                        placeholder="https://example.com"
                         onKeyDown={(e) => {
-                            if (e.key === 'Enter') onConfirm();
-                            if (e.key === 'Escape') onCancel();
-                        }}
-                    />
-                </label>
-
-                <label className="block text-sm mt-3">
-                    代替テキスト（任意）
-                    <input
-                        className="mt-1 w-full rounded border border-slate-300 p-2"
-                        value={imageAlt}
-                        onChange={(e) => setImageAlt(e.target.value)}
-                        placeholder="例：会場地図"
-                        onKeyDown={(e) => {
-                            if (e.key === 'Enter') onConfirm();
+                            if (e.key === 'Enter') onConfirm(linkUrl);
                             if (e.key === 'Escape') onCancel();
                         }}
                     />
@@ -104,7 +85,7 @@ export default function ImageUrlDialog({
                             hover:bg-blue-100
                             disabled:opacity-50
                         `}
-                        onClick={onConfirm}
+                        onClick={() => onConfirm(linkUrl)}
                     >
                         挿入
                     </button>

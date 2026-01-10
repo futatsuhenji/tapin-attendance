@@ -32,12 +32,21 @@ const EnterAsHardBreak = Extension.create({
     },
 });
 
-function isSafeHttpUrl(url: string): boolean {
+function isSafeImgUrl(url: string): boolean {
     try {
         const u = new URL(url);
         if (u.protocol !== 'http:' && u.protocol !== 'https:') return false;
         const path = u.pathname.toLowerCase();
         return /\.(png|jpe?g|webp|gif|svg)$/.test(path);
+    } catch {
+        return false;
+    }
+}
+
+function isSafeHttpUrl(url: string): boolean {
+    try {
+        const u = new URL(url);
+        return u.protocol === 'http:' || u.protocol === 'https:';
     } catch {
         return false;
     }
@@ -147,7 +156,7 @@ export function useRichMailEditor(initialJson?: JSONContent | null) {
         (url: string, alt?: string) => {
             if (!editor) return { ok: false as const, reason: 'no-editor' as const };
             const u = url.trim();
-            if (!isSafeHttpUrl(u)) return { ok: false as const, reason: 'invalid-url' as const };
+            if (!isSafeImgUrl(u)) return { ok: false as const, reason: 'invalid-url' as const };
 
             editor.chain().focus().setImage({ src: u, alt: alt?.trim() || undefined }).run();
             return { ok: true as const };
@@ -155,19 +164,16 @@ export function useRichMailEditor(initialJson?: JSONContent | null) {
         [editor],
     );
 
-    const toggleLink = useCallback(() => {
+    const toggleLink = useCallback((linkUrl: string) => {
         if (!editor) return;
-        const previousUrl = editor.getAttributes('link').href as string | undefined;
-        const url = globalThis.prompt('リンクURLを入力してください', previousUrl ?? 'https://');
-        if (url === null) return;
-
-        const trimmed = url.trim();
+        const trimmed = linkUrl.trim();
         if (trimmed === '') {
             editor.chain().focus().extendMarkRange('link').unsetLink().run();
             return;
         }
         if (!isSafeHttpUrl(trimmed)) {
             alert('リンクURLが不正です（http/https のURLを入力してください）');
+            console.log('Invalid link URL:', trimmed);
             return;
         }
         editor.chain().focus().extendMarkRange('link').setLink({
@@ -202,7 +208,8 @@ export function useRichMailEditor(initialJson?: JSONContent | null) {
         setCurrentColor,
         blockType,
         setBlockType,
-        actions: { insertImage, toggleLink, copyJson, pasteJson },
+        imageUrlActions: { insertImage, copyJson, pasteJson },
+        linkActions: { toggleLink, copyJson, pasteJson },
         editorTick,
     };
 }

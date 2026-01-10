@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
+import RichMailEditor from '@/components/richMailEditor';
 
 import { honoClient } from '@/lib/hono';
 
@@ -28,6 +29,7 @@ export default function EventInvitationPage() {
     });
     const [isSaving, setIsSaving] = useState(false);
     const [isSending, setIsSending] = useState(false);
+    const [isOpenEditor, setIsOpenEditor] = useState(false);
 
     const canEdit = mode !== 'view';
 
@@ -131,7 +133,7 @@ export default function EventInvitationPage() {
     return (
 
         <div className="max-w-[1200px] mx-auto px-6 py-6">
-            <div className="min-h-screen bg-gray-50 py-16 px-4">
+            <div className="min-h-screen py-16 px-4">
                 <div className="mx-auto bg-white max-w-5xl min-h-[70vh] rounded-none p-8 shadow-md">
                     <header className="mb-6">
                         <h1 className="text-2xl">イベントメール
@@ -152,7 +154,7 @@ export default function EventInvitationPage() {
                         {/* タイトル */}
                         <div className="mb-4">
                             <label>
-                                <div>メールタイトル</div>
+                                <div style={{ display: isOpenEditor ? 'none' : 'block' }} >メールタイトル</div>
                                 <input
                                     type="text"
                                     value={mail.title}
@@ -174,6 +176,7 @@ export default function EventInvitationPage() {
                                         disabled:text-gray-500
                                         disabled:cursor-not-allowed
                                     `}
+                                    style={{ display: isOpenEditor ? 'none' : 'block' }}
                                 />
                             </label>
                         </div>
@@ -181,7 +184,7 @@ export default function EventInvitationPage() {
                         {/* 本文 */}
                         <div className="mb-4">
                             <label>
-                                <div>メール本文</div>
+                                <div style={{ display: isOpenEditor ? 'none' : 'block' }} >メール本文</div>
                                 <textarea
                                     value={mail.body}
                                     readOnly={!canEdit}
@@ -203,16 +206,30 @@ export default function EventInvitationPage() {
                                         disabled:text-gray-500
                                         disabled:cursor-not-allowed
                                     `}
+                                    style={{ display: isOpenEditor ? 'none' : 'block' }}
                                 />
                             </label>
                         </div>
+                        <RichMailEditor
+                            open={isOpenEditor}
+                            initialJson={null}
+                            onSave={async ({ json, html }) => {
+                                // ハッカソン用：とりあえずログ
+                                console.log('SAVE JSON', json);
+                                console.log('SAVE HTML', html);
+
+                                // 実際はここでAPIへPOST
+                                // await fetch('/api/event-mail/custom', { method:'POST', body: JSON.stringify({ customDataJson: json }) })
+                                alert('保存処理（仮）を呼びました。consoleを確認してください。');
+                            }}
+                        />
                     </section>
 
 
                     {/* フッター操作 */}
                     <footer className="mt-4">
                         {mode !== 'view' && (
-                            <div className="flex gap-4">
+                            <div style={{ display: isOpenEditor ? 'none' : 'block' }} className="flex gap-4">
                                 <button
                                     onClick={handleSave}
                                     disabled={isSaving || isSending}
@@ -225,6 +242,19 @@ export default function EventInvitationPage() {
                                     `}
                                 >
                                     保存
+                                </button>
+                                <button
+                                    onClick={() => setIsOpenEditor(true)}
+                                    disabled={isSaving || isSending}
+                                    className={`
+                                        inline-flex items-center justify-center
+                                        rounded-md px-6 py-2
+                                        text-base font-medium text-blue-600
+                                        hover:bg-blue-100
+                                        disabled:opacity-50
+                                    `}
+                                >
+                                    高度な編集
                                 </button>
                                 <button
                                     onClick={handleSend}

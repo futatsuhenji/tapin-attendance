@@ -8,14 +8,12 @@ export default function Page() {
             <h1 className="text-xl font-semibold mb-4">イベントメール リッチ編集（PoC）</h1>
 
             <RichMailEditor
+                open={true}
                 initialJson={null}
                 onSave={async ({ json, html }) => {
-                    // ハッカソン用：とりあえずログ
+                    // とりあえずログ
                     console.log('SAVE JSON', json);
                     console.log('SAVE HTML', html);
-
-                    // 実際はここでAPIへPOST
-                    // await fetch('/api/event-mail/custom', { method:'POST', body: JSON.stringify({ customDataJson: json }) })
                     alert('保存処理（仮）を呼びました。consoleを確認してください。');
                 }}
             />
