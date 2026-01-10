@@ -37,7 +37,7 @@ export default function EventInvitationPage() {
         setIsSaving(true);
         try {
             if (mode === 'create') {
-                await honoClient.api.event[':groupId'][':eventId'].manage.invitation.$post({
+                await honoClient.api.events[':groupId'][':eventId'].manage.invitation.$post({
                     param: {
                         groupId,
                         eventId,
@@ -49,7 +49,7 @@ export default function EventInvitationPage() {
                 });
                 setMode('edit');
             } else {
-                await honoClient.api.event[':groupId'][':eventId'].manage.invitation.$patch({
+                await honoClient.api.events[':groupId'][':eventId'].manage.invitation.$patch({
                     param: {
                         groupId,
                         eventId,
@@ -75,7 +75,7 @@ export default function EventInvitationPage() {
         if (!saved) return;
         setIsSending(true);
         try {
-            const response = await honoClient.api.event[':groupId'][':eventId'].manage.invitation.send.$post({
+            const response = await honoClient.api.events[':groupId'][':eventId'].manage.invitation.send.$post({
                 param: {
                     groupId,
                     eventId,
@@ -94,7 +94,7 @@ export default function EventInvitationPage() {
     useEffect(() => {
         const fetchMail = async () => {
             try {
-                const response = await honoClient.api.event[':groupId'][':eventId'].manage.invitation.$get({
+                const response = await honoClient.api.events[':groupId'][':eventId'].manage.invitation.$get({
                     param: {
                         groupId,
                         eventId,
