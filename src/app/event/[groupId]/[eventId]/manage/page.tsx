@@ -158,7 +158,7 @@ export default function EventManagePage() {
                 <div>
                     <p className="text-sm text-gray-500">管理ダッシュボード（モック）</p>
                     <h1 className="text-3xl font-semibold text-gray-900">{data.event.name}</h1>
-                    <p className="text-sm text-gray-500">groupId: {groupId} / eventId: {eventId}</p>
+
                     {data.event.description && (
                         <p className="mt-2 text-gray-700 whitespace-pre-wrap">{data.event.description}</p>
                     )}
@@ -171,6 +171,12 @@ export default function EventManagePage() {
                     >
                         モックを再読み込み
                     </button>
+                    <Link
+                        href={`/event/${groupId}/${eventId}/manage/event`}
+                        className="rounded-md border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm hover:border-gray-300"
+                    >
+                        イベント情報編集
+                    </Link>
                     <Link
                         href={`/event/${groupId}/${eventId}/manage/invitation`}
                         className="rounded-md bg-blue-600 px-3 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700"
@@ -243,8 +249,8 @@ export default function EventManagePage() {
                     <h2 className="text-lg font-semibold text-gray-900">参加者リスト（モック）</h2>
                     <p className="text-sm text-gray-500">ダブルクリックで詳細表示（将来の実装想定）</p>
                 </div>
-                <div className="mt-4 overflow-hidden rounded-md border border-gray-200">
-                    <table className="min-w-full divide-y divide-gray-200 text-sm">
+                <div className="mt-4 overflow-x-auto rounded-md border border-gray-200">
+                    <table className="min-w-[720px] md:min-w-full w-full divide-y divide-gray-200 text-sm">
                         <thead className="bg-gray-50">
                             <tr>
                                 <th className="px-4 py-2 text-left font-medium text-gray-700">名前</th>

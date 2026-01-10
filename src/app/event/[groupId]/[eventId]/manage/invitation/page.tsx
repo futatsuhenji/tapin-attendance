@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { useParams } from 'next/navigation';
 
 import { honoClient } from '@/lib/hono';
@@ -138,6 +139,14 @@ export default function EventInvitationPage() {
                             {mode === 'edit' && 'の編集'}
                             {mode === 'view' && 'の閲覧'}
                         </h1>
+                        <div className="mt-3">
+                            <Link
+                                href={`/event/${groupId}/${eventId}/manage`}
+                                className="inline-flex items-center rounded-md border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm hover:border-gray-300"
+                            >
+                                ダッシュボードへ戻る
+                            </Link>
+                        </div>
                     </header>
                     <section>
                         {/* タイトル */}

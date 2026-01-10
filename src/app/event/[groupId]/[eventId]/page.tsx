@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'next/navigation';
 
@@ -25,6 +26,10 @@ type AttendancePayload = {
     status: AttendanceStatus;
     comment: string;
     updatedAt: string;
+};
+
+type ManageInfo = {
+    isManager: boolean;
 };
 
 
@@ -57,6 +62,7 @@ export default function EventParticipantPage() {
 
     const [event, setEvent] = useState<EventPayload | null>(null);
     const [attendance, setAttendance] = useState<AttendancePayload | null>(null);
+    const [manageInfo, setManageInfo] = useState<ManageInfo>({ isManager: false });
 
     const [comment, setComment] = useState('');
     const [selection, setSelection] = useState<AttendanceStatus>('UNANSWERED');
@@ -87,7 +93,10 @@ export default function EventParticipantPage() {
             comment: '',
             updatedAt: now.toISOString(),
         };
-        return { event: mockEvent, attendance: mockAttendance } as { event: EventPayload; attendance: AttendancePayload };
+        const manage: ManageInfo = {
+            isManager: true, // 管理者としてアクセスしているモック
+        };
+        return { event: mockEvent, attendance: mockAttendance, manage } as { event: EventPayload; attendance: AttendancePayload; manage: ManageInfo };
     }
 
     async function mockSaveAttendance(_groupId: string | null | undefined, _eventId: string | null | undefined, attendance: AttendanceStatus, commentText: string) {
@@ -117,6 +126,7 @@ export default function EventParticipantPage() {
                 const data = await mockFetchEventAttendance(groupId, eventId);
                 setEvent(data.event);
                 setAttendance(data.attendance);
+                setManageInfo(data.manage);
                 setSelection(data.attendance.status);
                 setComment(data.attendance.comment ?? '');
                 setFetchState('idle');
@@ -166,7 +176,17 @@ export default function EventParticipantPage() {
             <div className="mx-auto max-w-5xl px-4 py-10">
                 <header className="mb-8">
                     <p className="text-sm text-gray-500">イベント出欠</p>
-                    <h1 className="mt-2 text-3xl font-semibold text-gray-900">{event.name}</h1>
+                    <div className="flex flex-wrap items-center gap-3 justify-between">
+                        <h1 className="mt-2 text-3xl font-semibold text-gray-900">{event.name}</h1>
+                        {manageInfo.isManager && (
+                            <Link
+                                href={`/event/${groupId}/${eventId}/manage`}
+                                className="rounded-md border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm hover:border-gray-300"
+                            >
+                                管理ダッシュボードへ
+                            </Link>
+                        )}
+                    </div>
                     {event.description && (
                         <p className="mt-2 text-gray-700 whitespace-pre-wrap">{event.description}</p>
                     )}
