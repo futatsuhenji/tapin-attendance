@@ -152,7 +152,7 @@ export function useRichMailEditor(initialJson?: JSONContent | null) {
             editor.chain().focus().setImage({ src: u, alt: alt?.trim() || undefined }).run();
             return { ok: true as const };
         },
-        [editor]
+        [editor],
     );
 
     const toggleLink = useCallback(() => {
