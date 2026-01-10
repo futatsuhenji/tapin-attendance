@@ -46,6 +46,10 @@ export async function proxy(request: NextRequest) {
                         return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
                     }
 
+                    if (!seg2) {
+                        return NextResponse.next();
+                    }
+
                     const _groupId = seg1!;
                     const eventId = seg2!;
                     if (!(await hasEventAccessPermission(jwt.user.id, eventId))) {
