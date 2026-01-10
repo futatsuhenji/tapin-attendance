@@ -54,6 +54,8 @@ export async function validateEmailVerificationToken(token: string): Promise<str
  * JWTの内容。
  */
 interface JwtUserContent {
+    /** ユーザーID */
+    id: string;
     /** メールアドレス */
     email: string;
 }
