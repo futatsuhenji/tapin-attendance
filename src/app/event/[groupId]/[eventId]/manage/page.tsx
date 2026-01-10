@@ -80,6 +80,7 @@ export default function EventManagePage() {
 
     const [fetchState, setFetchState] = useState<FetchState>('loading');
     const [data, setData] = useState<ManageData | null>(null);
+    const [showActionsMobile, setShowActionsMobile] = useState(false);
 
     const registrationClosed = useMemo(() => {
         if (!data) return false;
@@ -154,7 +155,7 @@ export default function EventManagePage() {
 
     return (
         <div className="mx-auto max-w-6xl px-4 py-10">
-            <header className="mb-6 flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+            <header className="mb-6 flex flex-col gap-4">
                 <div>
                     <p className="text-sm text-gray-500">管理ダッシュボード（モック）</p>
                     <h1 className="text-3xl font-semibold text-gray-900">{data.event.name}</h1>
@@ -163,23 +164,43 @@ export default function EventManagePage() {
                         <p className="mt-2 text-gray-700 whitespace-pre-wrap">{data.event.description}</p>
                     )}
                 </div>
-                <div className="flex flex-wrap items-center gap-3">
+
+                <div className="flex items-center justify-between gap-3 md:hidden">
+                    <span className="text-sm text-gray-600">操作</span>
+                    <button
+                        type="button"
+                        onClick={() => setShowActionsMobile((v) => !v)}
+                        className="rounded-md border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm hover:border-gray-300"
+                    >
+                        {showActionsMobile ? '閉じる' : '表示する'}
+                    </button>
+                </div>
+
+                <div
+                    className={`flex w-full flex-col items-stretch gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-end sm:gap-2 ${showActionsMobile ? 'flex' : 'hidden'} md:flex`}
+                >
                     <button
                         type="button"
                         onClick={reload}
-                        className="rounded-md border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm hover:border-gray-300"
+                        className="w-full sm:w-auto rounded-md border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm hover:border-gray-300"
                     >
                         モックを再読み込み
                     </button>
                     <Link
+                        href={`/event/${groupId}/${eventId}`}
+                        className="w-full sm:w-auto rounded-md border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm hover:border-gray-300"
+                    >
+                        イベントページへ
+                    </Link>
+                    <Link
                         href={`/event/${groupId}/${eventId}/manage/event`}
-                        className="rounded-md border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm hover:border-gray-300"
+                        className="w-full sm:w-auto rounded-md border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm hover:border-gray-300"
                     >
                         イベント情報編集
                     </Link>
                     <Link
                         href={`/event/${groupId}/${eventId}/manage/invitation`}
-                        className="rounded-md bg-blue-600 px-3 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700"
+                        className="w-full sm:w-auto rounded-md bg-blue-600 px-3 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700"
                     >
                         招待メール設定へ
                     </Link>
