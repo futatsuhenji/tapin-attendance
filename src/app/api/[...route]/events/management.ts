@@ -16,12 +16,12 @@ const app = new Hono()
         const jwt = await getJwtFromContext(c);
 
         if (!groupId) return c.json({ message: 'Group ID is required' }, 400);
-        if (!jwt) return c.json([], 200);
+        if (!jwt) return c.json({ events: [] }, 200);
 
         const userId = jwt.user.id;
 
         try {
-            // グループオーナー確認
+            // グループオーナー / 管理者確認
             const group = await prisma.eventGroup.findUnique({
                 where: { id: groupId },
                 select: { ownerId: true },
@@ -30,39 +30,49 @@ const app = new Hono()
             if (!group) return c.json({ message: 'Group not found' }, 404);
 
             const isGroupOwner = group.ownerId === userId;
+            const isGroupAdmin = await prisma.eventGroupAdministrator.findUnique({
+                where: { groupId_userId: { groupId, userId } },
+                select: { userId: true },
+            });
 
-            // 検索条件の構築
-            const whereCondition: Prisma.EventWhereInput = {
-                groupId: groupId,
-            };
+            const whereCondition: Prisma.EventWhereInput = { groupId };
 
-            // グループオーナーでない場合のみ、表示条件（フィルタ）を追加
-            if (!isGroupOwner) {
+            // グループオーナー or グループ管理者は全件
+            if (!isGroupOwner && !isGroupAdmin) {
                 whereCondition.OR = [
-                    // 1. 自分が作成したイベント
                     { ownerId: userId },
-                    // 2. 自分が管理メンバーである
-                    {
-                        administrators: {
-                            some: { userId: userId },
-                        },
-                    },
-                    // 3. 自分が参加者リストにいる
-                    {
-                        attendances: {
-                            some: { userId: userId },
-                        },
-                    },
+                    { administrators: { some: { userId } } },
+                    { attendances: { some: { userId } } },
                 ];
             }
 
-            // C. データ取得
             const events = await prisma.event.findMany({
                 where: whereCondition,
                 orderBy: { startsAt: 'asc' },
+                select: {
+                    id: true,
+                    name: true,
+                    description: true,
+                    place: true,
+                    startsAt: true,
+                    endsAt: true,
+                    registrationEndsAt: true,
+                    ownerId: true,
+                    administrators: { select: { userId: true } },
+                },
             });
 
-            return c.json(events, 200);
+            const enriched = events.map((event) => {
+                const canManage =
+                    event.ownerId === userId || event.administrators.some((admin) => admin.userId === userId) || !!isGroupAdmin;
+                return {
+                    ...event,
+                    canManage,
+                    administrators: undefined,
+                } as unknown as { id: string; name: string; description: string | null; place: string | null; startsAt: Date | null; endsAt: Date | null; registrationEndsAt: Date | null; ownerId: string; canManage: boolean };
+            });
+
+            return c.json({ events: enriched }, 200);
         } catch (e) {
             if (e instanceof Response) return e;
             console.error('Failed to fetch events:', e);
@@ -135,6 +145,26 @@ const app = new Hono()
                             userId: ownerId,
                         },
                     });
+
+                    // オーナーを attendance に登録
+                    await tx.attendance.upsert({
+                        where: { eventId_userId: { eventId: event.id, userId: ownerId } },
+                        create: { eventId: event.id, userId: ownerId },
+                        update: {},
+                    });
+
+                    // グループ管理者も attendance に登録
+                    const groupAdmins = await tx.eventGroupAdministrator.findMany({
+                        where: { groupId },
+                        select: { userId: true },
+                    });
+                    for (const admin of groupAdmins) {
+                        await tx.attendance.upsert({
+                            where: { eventId_userId: { eventId: event.id, userId: admin.userId } },
+                            create: { eventId: event.id, userId: admin.userId },
+                            update: {},
+                        });
+                    }
 
                     return c.json(event, 201);
                 });

@@ -2,9 +2,41 @@ import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
 
+import administrators from './administrators';
 import { prisma } from '@/lib/prisma';
 
 const app = new Hono()
+    .get('/', async (c) => {
+        const groupId = c.req.param('groupId');
+
+        if (!groupId) return c.json({ message: 'Group ID is missing' }, 400);
+
+        try {
+            const group = await prisma.eventGroup.findUnique({
+                where: { id: groupId },
+                select: {
+                    id: true,
+                    name: true,
+                    description: true,
+                    ownerId: true,
+                    owner: { select: { name: true, email: true } },
+                    createdAt: true,
+                },
+            });
+
+            if (!group) return c.json({ message: 'Event group not found' }, 404);
+
+            return c.json({
+                ...group,
+                ownerName: group.owner.name,
+                ownerEmail: group.owner.email,
+            }, 200);
+        } catch (e) {
+            if (e instanceof Response) return e;
+            return c.json({ message: 'Unknown error' }, 500);
+        }
+    })
+    .route('/administrators', administrators)
     .patch(
         '/',
         zValidator(

@@ -25,7 +25,7 @@ const app = new Hono()
             const jwt = await getJwtFromContext(c);
 
             if (!jwt) {
-                return c.json([], 200);
+                return c.json({ groups: [] }, 200);
             }
 
             const userId = jwt.user.id;
@@ -35,6 +35,11 @@ const app = new Hono()
                     where: {
                         OR: [
                             { ownerId: userId },
+                            {
+                                administrators: {
+                                    some: { userId },
+                                },
+                            },
                             {
                                 events: {
                                     some: {
@@ -49,9 +54,24 @@ const app = new Hono()
                     orderBy: {
                         createdAt: 'desc',
                     },
+                    select: {
+                        id: true,
+                        name: true,
+                        description: true,
+                        ownerId: true,
+                        administrators: { select: { userId: true } },
+                    },
                 });
 
-                return c.json(groups, 200);
+                const enriched = groups.map((group) => ({
+                    id: group.id,
+                    name: group.name,
+                    description: group.description,
+                    ownerId: group.ownerId,
+                    canManage: group.ownerId === userId || group.administrators.some((admin) => admin.userId === userId),
+                }));
+
+                return c.json({ groups: enriched }, 200);
             } catch (e) {
                 if (e instanceof Response) return e;
                 console.error('Failed to fetch groups:', e);
