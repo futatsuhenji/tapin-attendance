@@ -4,6 +4,7 @@ import invitation from './manage/invitation';
 import members from './manage/members';
 import administrators from './manage/administrators';
 import receptions from './manage/receptions';
+import fees from './manage/fees';
 import { prisma } from '@/lib/prisma';
 
 import { AttendanceType } from '@/generated/prisma/enums';
@@ -104,6 +105,7 @@ const app = new Hono()
     .route('/invitation', invitation)
     .route('/members', members)
     .route('/administrators', administrators)
-    .route('/receptions', receptions);
+    .route('/receptions', receptions)
+    .route('/fees', fees);
 
 export default app;

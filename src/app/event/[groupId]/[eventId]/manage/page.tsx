@@ -26,6 +26,17 @@ type AttendanceSummary = {
     unanswered: number;
 };
 
+type FeeSummary = {
+    totalDue: number;
+    totalPaid: number;
+    remaining: number;
+};
+
+type FeeData = {
+    standardAmount: number | null;
+    summary: FeeSummary;
+};
+
 type Attendee = {
     id: string;
     name: string;
@@ -90,6 +101,11 @@ export default function EventManagePage() {
     const [addState, setAddState] = useState<SaveState>('idle');
     const [addError, setAddError] = useState('');
 
+    const [feeData, setFeeData] = useState<FeeData | null>(null);
+    const [feeInput, setFeeInput] = useState('');
+    const [feeState, setFeeState] = useState<SaveState>('idle');
+    const [feeError, setFeeError] = useState('');
+
     const registrationClosed = useMemo(() => {
         if (!data?.event.registrationEndsAt) return false;
         return new Date(data.event.registrationEndsAt) < new Date();
@@ -110,9 +126,32 @@ export default function EventManagePage() {
             const body = (await response.json()) as ManageData;
             setData(body);
             setFetchState('idle');
+            void loadFees();
         } catch (e) {
             console.error(e);
             setFetchState('error');
+        }
+    };
+
+    const loadFees = async () => {
+        if (!groupId || !eventId) return;
+        setFeeError('');
+        try {
+            const response = await honoClient.api.events[':groupId'][':eventId'].manage.fees.$get({
+                param: { groupId, eventId },
+            });
+
+            if (!response.ok) {
+                setFeeError('会費情報の取得に失敗しました');
+                return;
+            }
+
+            const body = await response.json() as FeeData;
+            setFeeData(body);
+            setFeeInput(body.standardAmount !== null ? body.standardAmount.toString() : '');
+        } catch (e) {
+            console.error(e);
+            setFeeError('会費情報の取得に失敗しました');
         }
     };
 
@@ -152,6 +191,41 @@ export default function EventManagePage() {
     useEffect(() => {
         void reload();
     }, [groupId, eventId]);
+
+    const handleSaveFee = async () => {
+        if (!groupId || !eventId) return;
+        const parsed = Number.parseInt(feeInput, 10);
+        if (Number.isNaN(parsed) || parsed < 0) {
+            setFeeError('0以上の数値を入力してください');
+            return;
+        }
+
+        setFeeState('saving');
+        setFeeError('');
+        try {
+            const response = await honoClient.api.events[':groupId'][':eventId'].manage.fees.$post({
+                param: { groupId, eventId },
+                json: { amount: parsed },
+            });
+
+            if (!response.ok) {
+                setFeeState('error');
+                setFeeError('会費設定の保存に失敗しました');
+                return;
+            }
+
+            const body = await response.json() as FeeData;
+            setFeeData(body);
+            setFeeInput(body.standardAmount !== null ? body.standardAmount.toString() : '');
+            setFeeState('saved');
+        } catch (e) {
+            console.error(e);
+            setFeeState('error');
+            setFeeError('会費設定の保存に失敗しました');
+        } finally {
+            setTimeout(() => setFeeState('idle'), 1200);
+        }
+    };
 
     if (fetchState === 'loading' || !data) {
         return (
@@ -293,6 +367,57 @@ export default function EventManagePage() {
                 </div>
             </section>
 
+            <section className="mb-6 rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
+                <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                    <div>
+                        <h2 className="text-lg font-semibold text-gray-900">会費設定</h2>
+                        <p className="text-sm text-gray-600">標準会費を設定すると全参加者の会費レコードに適用されます。</p>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                        <button
+                            type="button"
+                            onClick={() => void loadFees()}
+                            className="rounded-md border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm hover:border-gray-300"
+                        >
+                            再読み込み
+                        </button>
+                    </div>
+                </div>
+
+                <div className="mt-4 grid gap-3 md:grid-cols-[1fr_auto] md:items-end">
+                    <label className="space-y-1">
+                        <span className="text-sm font-medium text-gray-800">標準会費 (円)</span>
+                        <input
+                            type="number"
+                            min={0}
+                            value={feeInput}
+                            onChange={(event) => setFeeInput(event.target.value)}
+                            className="w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                            placeholder="例: 2000"
+                        />
+                    </label>
+                    <div className="flex gap-2 md:justify-end">
+                        <button
+                            type="button"
+                            onClick={handleSaveFee}
+                            disabled={feeState === 'saving'}
+                            className="inline-flex items-center justify-center rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                            {feeState === 'saving' ? '適用中…' : '全員に適用'}
+                        </button>
+                    </div>
+                </div>
+
+                {feeError && <p className="mt-2 text-sm text-red-600">{feeError}</p>}
+                {feeState === 'saved' && !feeError && <p className="mt-2 text-sm text-emerald-600">会費設定を更新しました</p>}
+
+                <div className="mt-4 grid gap-3 sm:grid-cols-3">
+                    <FeeStat label="合計徴収予定" value={feeData ? `${feeData.summary.totalDue.toLocaleString()} 円` : '-'} />
+                    <FeeStat label="徴収済み" value={feeData ? `${feeData.summary.totalPaid.toLocaleString()} 円` : '-'} />
+                    <FeeStat label="未収" value={feeData ? `${feeData.summary.remaining.toLocaleString()} 円` : '-'} tone="warn" />
+                </div>
+            </section>
+
             <section className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
                 <div className="flex items-center justify-between">
                     <h2 className="text-lg font-semibold text-gray-900">参加者リスト</h2>
@@ -376,6 +501,17 @@ function SummaryRow({ label, value, total, color }: { label: string; value: numb
             <div className="mt-1 h-2 rounded-full bg-gray-100">
                 <div className={`h-full rounded-full ${color}`} style={{ width: `${ratio}%` }} />
             </div>
+        </div>
+    );
+}
+
+function FeeStat({ label, value, tone }: { label: string; value: string; tone?: 'warn' }) {
+    const base = 'rounded-lg border p-3 shadow-sm';
+    const toneClass = tone === 'warn' ? 'border-amber-200 bg-amber-50 text-amber-900' : 'border-gray-200 bg-gray-50 text-gray-900';
+    return (
+        <div className={`${base} ${toneClass}`}>
+            <p className="text-sm text-gray-600">{label}</p>
+            <p className="mt-1 text-xl font-semibold">{value}</p>
         </div>
     );
 }
