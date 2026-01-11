@@ -46,6 +46,7 @@ type ManageData = {
 };
 
 type FetchState = 'idle' | 'loading' | 'error';
+type SaveState = 'idle' | 'saving' | 'saved' | 'error';
 
 function formatDateTime(value?: string | null): string {
     if (!value) return '-';
@@ -84,14 +85,18 @@ export default function EventManagePage() {
     const [fetchState, setFetchState] = useState<FetchState>('loading');
     const [data, setData] = useState<ManageData | null>(null);
     const [showActionsMobile, setShowActionsMobile] = useState(false);
+    const [addEmail, setAddEmail] = useState('');
+    const [addName, setAddName] = useState('');
+    const [addState, setAddState] = useState<SaveState>('idle');
+    const [addError, setAddError] = useState('');
 
     const registrationClosed = useMemo(() => {
         if (!data?.event.registrationEndsAt) return false;
         return new Date(data.event.registrationEndsAt) < new Date();
     }, [data]);
 
-    const reload = async () => {
-        setFetchState('loading');
+    const reload = async (silent = false) => {
+        if (!silent) setFetchState('loading');
         try {
             const response = await honoClient.api.events[':groupId'][':eventId'].manage.$get({
                 param: { groupId, eventId },
@@ -108,6 +113,39 @@ export default function EventManagePage() {
         } catch (e) {
             console.error(e);
             setFetchState('error');
+        }
+    };
+
+    const handleAddParticipant = async () => {
+        if (!groupId || !eventId || !addEmail.trim()) return;
+        setAddState('saving');
+        setAddError('');
+        try {
+            const response = await honoClient.api.events[':groupId'][':eventId'].manage.members.$post({
+                param: { groupId, eventId },
+                json: {
+                    email: addEmail.trim(),
+                    name: addName.trim() || undefined,
+                },
+            });
+
+            if (!response.ok) {
+                const body = await response.json().catch(() => null) as { message?: string } | null;
+                setAddError(body?.message ?? '追加に失敗しました');
+                setAddState('error');
+                return;
+            }
+
+            setAddState('saved');
+            setAddEmail('');
+            setAddName('');
+            await reload(true);
+        } catch (e) {
+            console.error(e);
+            setAddError('追加に失敗しました');
+            setAddState('error');
+        } finally {
+            setTimeout(() => setAddState('idle'), 1200);
         }
     };
 
@@ -159,7 +197,7 @@ export default function EventManagePage() {
                 >
                     <button
                         type="button"
-                        onClick={reload}
+                        onClick={() => void reload()}
                         className="w-full sm:w-auto rounded-md border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm hover:border-gray-300"
                     >
                         再読み込み
@@ -253,6 +291,40 @@ export default function EventManagePage() {
                 <div className="flex items-center justify-between">
                     <h2 className="text-lg font-semibold text-gray-900">参加者リスト</h2>
                     <p className="text-sm text-gray-500">最新の出欠状況を表示しています</p>
+                </div>
+                <div className="mt-4 grid gap-3 sm:grid-cols-[2fr_2fr_auto] sm:items-end">
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700">メールアドレス</label>
+                        <input
+                            type="email"
+                            value={addEmail}
+                            onChange={(event) => setAddEmail(event.target.value)}
+                            className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                            placeholder="user@example.com"
+                        />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700">名前 (任意)</label>
+                        <input
+                            type="text"
+                            value={addName}
+                            onChange={(event) => setAddName(event.target.value)}
+                            className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                            placeholder="表示名を入力"
+                        />
+                    </div>
+                    <div className="flex gap-2 sm:justify-end">
+                        <button
+                            type="button"
+                            onClick={handleAddParticipant}
+                            disabled={addState === 'saving' || !addEmail.trim()}
+                            className="mt-6 inline-flex items-center justify-center rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                            {addState === 'saving' ? '追加中…' : '参加者を追加'}
+                        </button>
+                    </div>
+                    {addError && <p className="text-sm text-red-600 sm:col-span-3">{addError}</p>}
+                    {addState === 'saved' && !addError && <p className="text-sm text-emerald-600 sm:col-span-3">参加者を追加しました</p>}
                 </div>
                 <div className="mt-4 overflow-x-auto rounded-md border border-gray-200">
                     <table className="min-w-[720px] md:min-w-full w-full divide-y divide-gray-200 text-sm">
