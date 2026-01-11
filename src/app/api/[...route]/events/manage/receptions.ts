@@ -4,6 +4,7 @@ import { z } from 'zod';
 
 import { AttendanceType } from '@/generated/prisma/enums';
 import { prisma } from '@/lib/prisma';
+import { transporter } from '@/lib/nodemailer';
 
 const attendanceOrUnanswered = (value: AttendanceType | null) => value ?? AttendanceType.UNANSWERED;
 
@@ -45,6 +46,14 @@ const app = new Hono()
                             updatedAt: true,
                         },
                     },
+                    feeReceipts: {
+                        select: {
+                            visitorId: true,
+                            amount: true,
+                            receipted: true,
+                            updatedAt: true,
+                        },
+                    },
                 },
             });
 
@@ -53,10 +62,12 @@ const app = new Hono()
             }
 
             const receptionMap = new Map(event.receptions.map((reception) => [reception.visitorId, reception] as const));
+            const feeMap = new Map(event.feeReceipts.map((fee) => [fee.visitorId, fee] as const));
 
             const attendees = event.attendances
                 .map((attendance) => {
                     const reception = receptionMap.get(attendance.user.id);
+                    const fee = feeMap.get(attendance.user.id);
                     return {
                         id: attendance.user.id,
                         name: attendance.user.name,
@@ -66,12 +77,17 @@ const app = new Hono()
                         updatedAt: attendance.updatedAt,
                         isRecepted: reception?.isRecepted ?? false,
                         receptionUpdatedAt: reception?.updatedAt ?? null,
+                        feeAmount: fee?.amount ?? null,
+                        feePaid: fee?.receipted ?? 0,
                     };
                 })
                 // eslint-disable-next-line unicorn/no-array-sort
                 .sort((a, b) => a.name.localeCompare(b.name, 'ja') || a.email.localeCompare(b.email, 'ja'));
 
             const checkedIn = attendees.filter((attendee) => attendee.isRecepted).length;
+            const feeTotal = attendees.reduce((sum, attendee) => sum + (attendee.feeAmount ?? 0), 0);
+            const feePaid = attendees.reduce((sum, attendee) => sum + (attendee.feePaid ?? 0), 0);
+            const feeRemaining = Math.max(feeTotal - feePaid, 0);
 
             return c.json({
                 event: {
@@ -85,6 +101,11 @@ const app = new Hono()
                     checkedIn,
                     pending: attendees.length - checkedIn,
                 },
+                fee: {
+                    totalDue: feeTotal,
+                    totalPaid: feePaid,
+                    remaining: feeRemaining,
+                },
                 attendees,
             }, 200);
         } catch (e) {
@@ -95,11 +116,21 @@ const app = new Hono()
     })
     .post(
         '/',
-        zValidator('json', z.object({ userId: z.string().cuid(), isRecepted: z.boolean() })),
+        zValidator(
+            'json',
+            z.object({
+                userId: z.string().cuid(),
+                isRecepted: z.boolean().optional(),
+                receipted: z.number().int().nonnegative().optional(),
+                amount: z.number().int().nonnegative().optional(),
+            }).refine((value) => value.isRecepted !== undefined || value.receipted !== undefined || value.amount !== undefined, {
+                message: 'No update specified',
+            }),
+        ),
         async (c) => {
             const groupId = c.req.param('groupId');
             const eventId = c.req.param('eventId');
-            const { userId, isRecepted } = c.req.valid('json');
+            const { userId, isRecepted, receipted, amount } = c.req.valid('json');
 
             if (!groupId || !eventId) return c.json({ message: 'Invalid parameters' }, 400);
 
@@ -107,7 +138,7 @@ const app = new Hono()
                 return await prisma.$transaction(async (tx) => {
                     const event = await tx.event.findUnique({
                         where: { id: eventId },
-                        select: { groupId: true },
+                        select: { groupId: true, name: true },
                     });
 
                     if (!event || event.groupId !== groupId) {
@@ -130,12 +161,62 @@ const app = new Hono()
                         return c.json({ message: '参加者が見つかりません' }, 404);
                     }
 
-                    const reception = await tx.reception.upsert({
-                        where: { eventId_visitorId: { eventId, visitorId: userId } },
-                        create: { eventId, visitorId: userId, isRecepted },
-                        update: { isRecepted },
-                        select: { isRecepted: true, updatedAt: true },
-                    });
+                    const reception = isRecepted === undefined
+                        ? await tx.reception.findUnique({
+                            where: { eventId_visitorId: { eventId, visitorId: userId } },
+                            select: { isRecepted: true, updatedAt: true },
+                        })
+                        : await tx.reception.upsert({
+                            where: { eventId_visitorId: { eventId, visitorId: userId } },
+                            create: { eventId, visitorId: userId, isRecepted },
+                            update: { isRecepted },
+                            select: { isRecepted: true, updatedAt: true },
+                        });
+
+                    const fee = (receipted !== undefined || amount !== undefined)
+                        ? await tx.eventFee.upsert({
+                            where: { eventId_visitorId: { eventId, visitorId: userId } },
+                            create: {
+                                eventId,
+                                visitorId: userId,
+                                amount: amount ?? 0,
+                                receipted: receipted ?? 0,
+                            },
+                            update: {
+                                amount: amount ?? undefined,
+                                receipted: receipted ?? undefined,
+                            },
+                            select: { amount: true, receipted: true, updatedAt: true },
+                        })
+                        : await tx.eventFee.findUnique({
+                            where: { eventId_visitorId: { eventId, visitorId: userId } },
+                            select: { amount: true, receipted: true, updatedAt: true },
+                        });
+
+                    const shouldSendReceipt = typeof receipted === 'number' && receipted > 0;
+
+                    if (shouldSendReceipt && attendance.user.email && event.name) {
+                        const receiptAt = new Date();
+                        const receiptAtText = receiptAt.toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' });
+                        const remainingDue = typeof fee?.amount === 'number'
+                            ? Math.max(fee.amount - (receipted ?? 0), 0)
+                            : null;
+                        const remainingText = remainingDue && remainingDue > 0
+                            ? `\n未収金額: ${remainingDue} 円`
+                            : '';
+
+                        // Fire-and-forget so the API response is not delayed by email sending.
+                        transporter
+                            .sendMail({
+                                from: `Tap'in出欠 <${process.env.SMTP_USER}>`,
+                                to: attendance.user.email,
+                                subject: '会費領収書のご案内',
+                                text: `${attendance.user.name ?? ''} 様\n\nイベント「${event.name}」の会費を領収しました。\n領収金額: ${receipted} 円${remainingText}\n領収日時: ${receiptAtText}\n\n本メールにお心当たりがない場合はこのまま破棄してください。`,
+                            })
+                            .catch((e) => {
+                                console.error('Failed to send receipt email', e);
+                            });
+                    }
 
                     return c.json({
                         attendee: {
@@ -145,8 +226,10 @@ const app = new Hono()
                             response: attendanceOrUnanswered(attendance.attendance),
                             comment: attendance.comment,
                             updatedAt: attendance.updatedAt,
-                            isRecepted: reception.isRecepted,
-                            receptionUpdatedAt: reception.updatedAt,
+                            isRecepted: reception?.isRecepted ?? false,
+                            receptionUpdatedAt: reception?.updatedAt ?? null,
+                            feeAmount: fee?.amount ?? null,
+                            feePaid: fee?.receipted ?? 0,
                         },
                     }, 200);
                 });
