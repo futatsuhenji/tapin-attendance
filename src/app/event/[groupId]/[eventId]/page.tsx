@@ -56,8 +56,8 @@ function formatDateTime(value: string | null): string {
 
 export default function EventParticipantPage() {
     const { groupId, eventId } = useParams<{ groupId: string; eventId: string }>();
-    const searchParams = useSearchParams();
-    const token = searchParams.get('token'); // URLパラメータからトークンを取得
+    const searchParameters = useSearchParams();
+    const token = searchParameters.get('token'); // URLパラメータからトークンを取得
 
     const [fetchState, setFetchState] = useState<FetchState>('loading');
     const [fetchError, setFetchError] = useState<string | null>(null);
