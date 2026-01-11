@@ -3,6 +3,8 @@ import Link from 'next/link';
 import GroupCreateForm from './client';
 import { getJwtFromCookieStore } from '@/utils/auth';
 
+export const dynamic = 'force-dynamic';
+
 export default async function GroupCreatePage() {
     const jwt = await getJwtFromCookieStore();
     const ownerId = jwt?.user.id ?? null;
