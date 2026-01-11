@@ -5,12 +5,24 @@ import { z } from 'zod';
 import { transporter } from '@/lib/nodemailer';
 import { PrismaClientKnownRequestError, prisma } from '@/lib/prisma';
 import { buildAttendanceLink } from '@/utils/attendance';
+import { Prisma } from '@/generated/prisma/client';
 
 import type { TransactionClient } from '@/lib/prisma';
 
 
 async function isMailSent({ tx, eventId }: {tx: TransactionClient; eventId: string}): Promise<boolean> {
     return !(await tx.attendance.findFirst({ where: { eventId, attendance: null } }));
+}
+
+function htmlToText(html: string): string {
+    return html
+        .replaceAll(/<br\s*\/?>(\s*)/gi, '\n')
+        .replaceAll(/<p[^>]*>/gi, '')
+        .replaceAll(/<\/p>/gi, '\n')
+        // eslint-disable-next-line sonarjs/slow-regex
+        .replaceAll(/<[^>]+>/g, '')
+        .replaceAll(/\n{3,}/g, '\n\n')
+        .trim();
 }
 
 
@@ -22,7 +34,7 @@ const app = new Hono()
             return await prisma.$transaction(async (tx) => {
                 if (await tx.eventGroup.findUnique({ where: { id: groupId } })) {
                     if (await tx.event.findUnique({ where: { id: eventId } })) {
-                        const mail = await tx.eventMail.findUnique({ select: { title: true, content: true }, where: { eventId } });
+                        const mail = await tx.eventMail.findUnique({ select: { title: true, content: true, custom: true }, where: { eventId } });
                         if (mail) {
                             const sent = await isMailSent({ tx, eventId });
                             return c.json({ ...mail, isSent: sent });
@@ -42,16 +54,26 @@ const app = new Hono()
         zValidator('json', z.object({
             title: z.string(),
             content: z.string(),
+            customJson: z.any().optional(),
+            customHtml: z.string().optional(),
         })),
         async (c) => {
             const groupId = c.req.param('groupId')!;
             const eventId = c.req.param('eventId')!;
-            const { title, content } = c.req.valid('json');
+            const { title, content, customJson, customHtml } = c.req.valid('json');
+            // eslint-disable-next-line sonarjs/cognitive-complexity
             return await prisma.$transaction(async (tx) => {
                 if (await tx.eventGroup.findUnique({ where: { id: groupId } })) {
                     if (await tx.event.findUnique({ where: { id: eventId } })) {
                         try {
-                            await tx.eventMail.create({ data: { eventId, title, content } });
+                            await tx.eventMail.create({
+                                data: {
+                                    eventId,
+                                    title,
+                                    content,
+                                    custom: customJson ? { json: customJson, html: customHtml ?? null } : undefined,
+                                },
+                            });
                         } catch (e) {
                             // eslint-disable-next-line unicorn/prefer-ternary
                             if (e instanceof PrismaClientKnownRequestError && e.code === 'P2002') {
@@ -74,11 +96,13 @@ const app = new Hono()
         zValidator('json', z.object({
             title: z.string().optional(),
             content: z.string().optional(),
+            customJson: z.any().optional(),
+            customHtml: z.string().optional(),
         })),
         async (c) => {
             const groupId = c.req.param('groupId')!;
             const eventId = c.req.param('eventId')!;
-            const { title, content } = c.req.valid('json');
+            const { title, content, customJson, customHtml } = c.req.valid('json');
             // eslint-disable-next-line sonarjs/cognitive-complexity
             return await prisma.$transaction(async (tx) => {
                 if (await isMailSent({ tx, eventId })) {
@@ -88,9 +112,12 @@ const app = new Hono()
                     if (await tx.event.findUnique({ where: { id: eventId } })) {
                         const mail = await tx.eventMail.findUnique({ where: { eventId } });
                         if (mail) {
-                            const data: { title?: string; content?: string } = {};
+                            const data: Prisma.EventMailUpdateInput = {};
                             if (title) data.title = title;
                             if (content) data.content = content;
+                            if (customJson !== undefined) {
+                                data.custom = customJson === null ? Prisma.JsonNull : ({ json: customJson, html: customHtml ?? null } as Prisma.InputJsonValue);
+                            }
                             await tx.eventMail.update({ where: { eventId }, data });
                             return c.json({ message: 'Mail updated' }, 200);
                         } else {
@@ -135,6 +162,7 @@ const app = new Hono()
         async (c) => {
             const groupId = c.req.param('groupId')!;
             const eventId = c.req.param('eventId')!;
+            // eslint-disable-next-line sonarjs/cognitive-complexity
             return await prisma.$transaction(async (tx) => {
                 if (await tx.eventGroup.findUnique({ where: { id: groupId } })) {
                     if (await tx.event.findUnique({ where: { id: eventId } })) {
@@ -159,6 +187,10 @@ const app = new Hono()
                                     .map((line) => `<p style="margin: 0 0 8px;">${escapeHtml(line)}</p>`)
                                     .join('');
 
+                            const customHtml = (mail.custom as { html?: string } | null | undefined)?.html ?? null;
+                            const baseHtml = customHtml ?? toHtml(mail.content || '');
+                            const textBody = customHtml ? htmlToText(customHtml) : (mail.content || '');
+
                             const button = (label: string, href: string, color: string) =>
                                 `<a href="${href}" style="display:inline-block;padding:10px 16px;border-radius:8px;background:${color};color:#fff;text-decoration:none;font-weight:600;">${label}</a>`;
 
@@ -169,14 +201,14 @@ const app = new Hono()
                                 const absenceLink = buildAttendanceLink({ origin, groupId, eventId, token: attendee.secret, action: 'absence' });
                                 const html = `
                                     <div style="font-size:14px;line-height:1.6;">
-                                        ${toHtml(mail.content || '')}
+                                        ${baseHtml}
                                         <div style="margin-top:16px;display:flex;gap:12px;align-items:center;">
                                             ${button('参加', attendLink, '#2563eb')}
                                             ${button('不参加', absenceLink, '#dc2626')}
                                         </div>
                                     </div>
                                 `;
-                                const text = `${mail.content || ''}\n\n参加: ${attendLink}\n不参加: ${absenceLink}`;
+                                const text = `${textBody}\n\n参加: ${attendLink}\n不参加: ${absenceLink}`;
 
                                 await transporter.sendMail({
                                     from: `Tap'in出欠 <${process.env.SMTP_USER}>`,
