@@ -6,8 +6,8 @@ import { transporter } from '@/lib/nodemailer';
 import { PrismaClientKnownRequestError, prisma } from '@/lib/prisma';
 import { buildAttendanceLink } from '@/utils/attendance';
 import { Prisma } from '@/generated/prisma/client';
-
 import type { TransactionClient } from '@/lib/prisma';
+import { DefaultMailHtml } from '@/utils/defaultMailHtml';
 
 
 async function isMailSent({ tx, eventId }: {tx: TransactionClient; eventId: string}): Promise<boolean> {
@@ -187,28 +187,28 @@ const app = new Hono()
                                     .map((line) => `<p style="margin: 0 0 8px;">${escapeHtml(line)}</p>`)
                                     .join('');
 
-                            const customHtml = (mail.custom as { html?: string } | null | undefined)?.html ?? null;
-                            const baseHtml = customHtml ?? toHtml(mail.content || '');
-                            const textBody = customHtml ? htmlToText(customHtml) : (mail.content || '');
-
-                            const button = (label: string, href: string, color: string) =>
-                                `<a href="${href}" style="display:inline-block;padding:10px 16px;border-radius:8px;background:${color};color:#fff;text-decoration:none;font-weight:600;">${label}</a>`;
-
                             const origin = new URL(c.req.url).origin;
 
                             for (const attendee of attendees) {
                                 const attendLink = buildAttendanceLink({ origin, groupId, eventId, token: attendee.secret, action: 'attend' });
                                 const absenceLink = buildAttendanceLink({ origin, groupId, eventId, token: attendee.secret, action: 'absence' });
-                                const html = `
-                                    <div style="font-size:14px;line-height:1.6;">
-                                        ${baseHtml}
-                                        <div style="margin-top:16px;display:flex;gap:12px;align-items:center;">
-                                            ${button('参加', attendLink, '#2563eb')}
-                                            ${button('不参加', absenceLink, '#dc2626')}
+                                const customHtml = (mail.custom as { html?: string } | null | undefined)?.html ?? null;
+
+                                const html = customHtml
+                                    ? `
+                                        <div style="font-size:14px;line-height:1.6;">
+                                            ${customHtml}
+                                            <div style="margin-top:16px;display:flex;gap:12px;align-items:center;">
+                                                <a href="${attendLink}" style="display:inline-block;padding:10px 16px;border-radius:8px;background:#2563eb;color:#fff;text-decoration:none;font-weight:600;">参加</a>
+                                                <a href="${absenceLink}" style="display:inline-block;padding:10px 16px;border-radius:8px;background:#dc2626;color:#fff;text-decoration:none;font-weight:600;">不参加</a>
+                                            </div>
                                         </div>
-                                    </div>
-                                `;
-                                const text = `${textBody}\n\n参加: ${attendLink}\n不参加: ${absenceLink}`;
+                                    `
+                                    : DefaultMailHtml(toHtml(mail.content || ''), attendLink, absenceLink);
+
+                                const text = customHtml
+                                    ? `${htmlToText(customHtml)}\n\n参加: ${attendLink}\n不参加: ${absenceLink}`
+                                    : `${mail.content || ''}\n\n参加: ${attendLink}\n不参加: ${absenceLink}`;
 
                                 await transporter.sendMail({
                                     from: `Tap'in出欠 <${process.env.SMTP_USER}>`,

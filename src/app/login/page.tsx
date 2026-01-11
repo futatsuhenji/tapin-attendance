@@ -1,9 +1,9 @@
 'use client';
 
-import { FormEvent, useMemo, useState } from 'react';
+import { FormEvent, Suspense, useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 
-export default function LoginPage() {
+function LoginContent() {
     const searchParameters = useSearchParams();
     const redirectUrl = useMemo(
         () => searchParameters.get('redirectUrl') ?? searchParameters.get('redirect') ?? '/mypage',
@@ -103,5 +103,13 @@ export default function LoginPage() {
                 </div>
             </div>
         </div>
+    );
+}
+
+export default function LoginPage() {
+    return (
+        <Suspense fallback={<div className="min-h-screen bg-gray-50" />}>
+            <LoginContent />
+        </Suspense>
     );
 }
