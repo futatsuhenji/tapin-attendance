@@ -16,14 +16,28 @@ const app = new Hono()
 
         const event = await prisma.event.findUnique({
             where: { id: eventId },
-            select: { name: true, group: { select: { name: true, id: true } } },
+            select: {
+                name: true,
+                startsAt: true,
+                endsAt: true,
+                place: true,
+                description: true,
+                group: { select: { name: true, id: true } },
+            },
         });
 
         if (!event || event.group.id !== groupId) {
             return c.json({ message: 'Event not found' }, 404);
         }
 
-        return c.json({ eventName: event.name, groupName: event.group.name });
+        return c.json({
+            eventName: event.name,
+            groupName: event.group.name,
+            startsAt: event.startsAt,
+            endsAt: event.endsAt,
+            place: event.place,
+            description: event.description,
+        });
     })
     .get('/:decision', async (c) => {
         const decision = c.req.param('decision') as Decision;
