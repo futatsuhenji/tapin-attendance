@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useSearchParams } from 'next/navigation'; // useSearchParams を追加
 
 import { honoClient } from '@/lib/hono';
 
@@ -56,6 +56,8 @@ function formatDateTime(value: string | null): string {
 
 export default function EventParticipantPage() {
     const { groupId, eventId } = useParams<{ groupId: string; eventId: string }>();
+    const searchParams = useSearchParams();
+    const token = searchParams.get('token'); // URLパラメータからトークンを取得
 
     const [fetchState, setFetchState] = useState<FetchState>('loading');
     const [fetchError, setFetchError] = useState<string | null>(null);
@@ -80,23 +82,52 @@ export default function EventParticipantPage() {
             setFetchState('loading');
             setFetchError(null);
             try {
-                const response = await honoClient.api.events[':groupId'][':eventId'].$get({
-                    param: { groupId, eventId },
-                });
+                let data;
 
-                if (!response.ok) {
-                    setFetchState('error');
-                    setFetchError('イベント情報の取得に失敗しました');
-                    return;
+                if (token) {
+                    // 1. トークンがある場合: 新設したステータス取得APIを使用
+                    const res = await fetch(`/api/events/${groupId}/${eventId}/respond/status/${token}`);
+                    if (!res.ok) {
+                        setFetchState('error');
+                        setFetchError('無効な招待リンクです');
+                        return;
+                    }
+                    const json = await res.json();
+                    data = {
+                        event: {
+                            name: json.eventName,
+                            groupName: json.groupName,
+                            registrationEndsAt: json.registrationEndsAt,
+                            // 他の詳細は既存のGETから取得できないため最小限の構成
+                            description: null,
+                            id: eventId,
+                        },
+                        attendance: {
+                            status: json.status,
+                            comment: json.comment,
+                            updatedAt: new Date().toISOString(),
+                        },
+                        manage: { isManager: false },
+                    };
+                } else {
+                    // 2. トークンがない場合: 既存のログインユーザー用APIを使用
+                    const response = await honoClient.api.events[':groupId'][':eventId'].$get({
+                        param: { groupId, eventId },
+                    });
+
+                    if (!response.ok) {
+                        setFetchState('error');
+                        setFetchError('イベント情報の取得に失敗しました');
+                        return;
+                    }
+                    data = await response.json() as {
+                        event: EventPayload;
+                        attendance: AttendancePayload | null;
+                        manage: ManageInfo;
+                    };
                 }
 
-                const data = await response.json() as {
-                    event: EventPayload;
-                    attendance: AttendancePayload | null;
-                    manage: ManageInfo;
-                };
-
-                setEvent(data.event);
+                setEvent(data.event as EventPayload);
                 setAttendance(data.attendance);
                 setManageInfo(data.manage ?? { isManager: false });
                 setSelection(data.attendance?.status ?? 'UNANSWERED');
@@ -109,28 +140,45 @@ export default function EventParticipantPage() {
             }
         };
         load();
-    }, [eventId, groupId]);
+    }, [eventId, groupId, token]);
 
     const handleSave = async () => {
         if (!groupId || !eventId) return;
         setIsSaving(true);
         setSaveMessage(null);
         try {
-            const response = await honoClient.api.events[':groupId'][':eventId'].attendance.$post({
-                param: { groupId, eventId },
-                json: { status: selection, comment },
-            });
+            if (token) {
+                // 1. トークンがある場合: PATCH API で上書き保存
+                const response = await fetch(`/api/events/${groupId}/${eventId}/respond/status/${token}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ status: selection, comment }),
+                });
 
-            if (!response.ok) {
-                setSaveMessage('更新に失敗しました');
-                return;
+                if (!response.ok) {
+                    const error = await response.json();
+                    setSaveMessage(error.message || '更新に失敗しました');
+                    return;
+                }
+                setSaveMessage('出欠を保存し、完了メールを送信しました');
+            } else {
+                // 2. トークンがない場合: 既存の POST API を使用
+                const response = await honoClient.api.events[':groupId'][':eventId'].attendance.$post({
+                    param: { groupId, eventId },
+                    json: { status: selection, comment },
+                });
+
+                if (!response.ok) {
+                    setSaveMessage('更新に失敗しました');
+                    return;
+                }
+
+                const payload = await response.json() as { attendance: AttendancePayload };
+                setAttendance(payload.attendance);
+                setSelection(payload.attendance.status);
+                setComment(payload.attendance.comment ?? '');
+                setSaveMessage('出欠を保存しました');
             }
-
-            const payload = await response.json() as { attendance: AttendancePayload };
-            setAttendance(payload.attendance);
-            setSelection(payload.attendance.status);
-            setComment(payload.attendance.comment ?? '');
-            setSaveMessage('出欠を保存しました');
         } catch (e) {
             console.error(e);
             setSaveMessage('更新に失敗しました');
