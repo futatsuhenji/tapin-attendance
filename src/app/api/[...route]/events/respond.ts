@@ -25,6 +25,38 @@ const app = new Hono()
 
         return c.json({ eventName: event.name, groupName: event.group.name });
     })
+    // 出欠状況を取得するAPI
+    .get('/status/:token', async (c) => {
+        const token = c.req.param('token');
+
+        // secret(token) をキーに、回答データとイベント情報を取得
+        const attendance = await prisma.attendance.findFirst({
+            where: { secret: token },
+            select: {
+                attendance: true,
+                comment: true,
+                event: {
+                    select: {
+                        name: true,
+                        registrationEndsAt: true,
+                        group: { select: { name: true } },
+                    },
+                },
+            },
+        });
+
+        if (!attendance) {
+            return c.json({ message: 'Invalid token' }, 404);
+        }
+
+        return c.json({
+            status: attendance.attendance,
+            comment: attendance.comment ?? '',
+            eventName: attendance.event.name,
+            groupName: attendance.event.group.name,
+            registrationEndsAt: attendance.event.registrationEndsAt,
+        });
+    })
     .get('/:decision', async (c) => {
         const decision = c.req.param('decision') as Decision;
         const token = c.req.query('token');
@@ -49,7 +81,7 @@ const app = new Hono()
             where: { eventId_userId: { eventId: attendance.eventId, userId: attendance.userId } },
             data: {
                 attendance: decisionToAttendance(decision),
-                // mark that the email was opened when the user clicked the link
+
                 isMailOpened: true,
                 secret: cuid(),
             },
