@@ -221,6 +221,12 @@ export default function EventManagePage() {
                         イベント情報編集
                     </Link>
                     <Link
+                        href={`/event/${groupId}/${eventId}/manage/receptions`}
+                        className="w-full sm:w-auto rounded-md border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm hover:border-gray-300"
+                    >
+                        当日出欠管理
+                    </Link>
+                    <Link
                         href={`/event/${groupId}/${eventId}/manage/invitation`}
                         className="w-full sm:w-auto rounded-md bg-blue-600 px-3 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700"
                     >
