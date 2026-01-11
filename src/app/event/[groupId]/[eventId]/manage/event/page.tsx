@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 
+import { honoClient } from '@/lib/hono';
+
 type EventForm = {
     name: string;
     description: string;
@@ -51,32 +53,52 @@ export default function EventEditPage() {
         endsAt: '',
     });
 
-    // Mock fetch
     useEffect(() => {
-        setFetchState('loading');
-        setMessage(null);
-        const timer = setTimeout(() => {
-            const now = new Date();
-            const startsAt = new Date(now.getTime() + 1000 * 60 * 60 * 48); // +2 days
-            const endsAt = new Date(startsAt.getTime() + 1000 * 60 * 60 * 2); // +2 hours
-            const registrationEndsAt = new Date(startsAt.getTime() - 1000 * 60 * 60 * 12); // 12 hours before start
+        const load = async () => {
+            if (!groupId || !eventId) return;
+            setFetchState('loading');
+            setMessage(null);
+            try {
+                const [eventResponse, invitationResponse] = await Promise.all([
+                    honoClient.api.events[':groupId'][':eventId'].$get({ param: { groupId, eventId } }),
+                    honoClient.api.events[':groupId'][':eventId'].manage.invitation.$get({ param: { groupId, eventId } }).catch(() => null),
+                ]);
 
-            setForm({
-                name: 'イベント情報編集（モック）',
-                description: '実際のAPIは未接続です。ここで設定して保存するとモック応答が返ります。',
-                place: '第1会議室（モック）',
-                mapUrl: 'https://maps.example.com/mock',
-                allowVisitorListSharing: true,
-                registrationEndsAt: isoToLocalInput(registrationEndsAt.toISOString()),
-                startsAt: isoToLocalInput(startsAt.toISOString()),
-                endsAt: isoToLocalInput(endsAt.toISOString()),
-            });
-            // モックでは招待メールは既に送信済みとする（編集不可の確認のため）
-            setInvitationSent(true);
-            setFetchState('idle');
-        }, 300);
-        return () => clearTimeout(timer);
-    }, []);
+                if (!eventResponse.ok) {
+                    setFetchState('error');
+                    return;
+                }
+
+                const eventData = await eventResponse.json() as { event: { name: string; description: string | null; place: string | null; mapUrl: string | null; allowVisitorListSharing?: boolean; registrationEndsAt: string | null; startsAt: string | null; endsAt: string | null } };
+
+                setForm({
+                    name: eventData.event.name || '',
+                    description: eventData.event.description || '',
+                    place: eventData.event.place || '',
+                    mapUrl: eventData.event.mapUrl || '',
+                    allowVisitorListSharing: Boolean(eventData.event.allowVisitorListSharing),
+                    registrationEndsAt: isoToLocalInput(eventData.event.registrationEndsAt),
+                    startsAt: isoToLocalInput(eventData.event.startsAt),
+                    endsAt: isoToLocalInput(eventData.event.endsAt),
+                });
+
+                if (invitationResponse?.ok) {
+                    const invitation = await invitationResponse.json() as { isSent?: boolean };
+                    setInvitationSent(Boolean(invitation.isSent));
+                } else {
+                    setInvitationSent(false);
+                }
+
+                setFetchState('idle');
+            } catch (e) {
+                console.error(e);
+                setFetchState('error');
+                setMessage('データの取得に失敗しました');
+            }
+        };
+
+        load();
+    }, [eventId, groupId]);
 
     const disabled = fetchState === 'loading' || saveState === 'saving';
 
@@ -85,26 +107,39 @@ export default function EventEditPage() {
     };
 
     const handleSave = async () => {
+        if (!groupId || !eventId) return;
         setSaveState('saving');
         setMessage(null);
         try {
-            // Mock save delay
-            await new Promise((resolve) => setTimeout(resolve, 400));
-            const payload = {
-                ...form,
-                registrationEndsAt: localToIso(form.registrationEndsAt),
-                startsAt: localToIso(form.startsAt),
-                endsAt: localToIso(form.endsAt),
-                groupId,
-                eventId,
-            };
-            console.info('Mock save payload:', payload);
+            const registrationEndsAt = localToIso(form.registrationEndsAt);
+            const startsAt = localToIso(form.startsAt);
+            const endsAt = localToIso(form.endsAt);
+            const response = await honoClient.api.events[':groupId'][':eventId'].$patch({
+                param: { groupId, eventId },
+                json: {
+                    name: form.name,
+                    description: form.description,
+                    place: form.place,
+                    mapUrl: form.mapUrl,
+                    allowVisitorListSharing: form.allowVisitorListSharing,
+                    registrationEndsAt: registrationEndsAt ?? undefined,
+                    startsAt: startsAt ?? undefined,
+                    endsAt: endsAt ?? undefined,
+                },
+            });
+
+            if (!response.ok) {
+                setSaveState('error');
+                setMessage('保存に失敗しました');
+                return;
+            }
+
             setSaveState('saved');
-            setMessage('モック保存が完了しました。実API実装時に置き換えてください。');
+            setMessage('保存しました');
         } catch (e) {
             console.error(e);
             setSaveState('error');
-            setMessage('保存に失敗しました（モック）');
+            setMessage('保存に失敗しました');
         }
     };
 
@@ -112,7 +147,7 @@ export default function EventEditPage() {
         <div className="mx-auto max-w-4xl px-4 py-8">
             <header className="mb-6 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                 <div>
-                    <p className="text-sm text-gray-500">イベント情報編集（モック）</p>
+                    <p className="text-sm text-gray-500">イベント情報編集</p>
                     <h1 className="text-2xl font-semibold text-gray-900">{form.name || 'イベント情報'}</h1>
                 </div>
                 <div className="flex flex-wrap items-center gap-3">
@@ -128,7 +163,7 @@ export default function EventEditPage() {
                         disabled={disabled}
                         className="rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
                     >
-                        {saveState === 'saving' ? '保存中…' : '保存（モック）'}
+                        {saveState === 'saving' ? '保存中…' : '保存'}
                     </button>
                 </div>
             </header>
@@ -235,7 +270,7 @@ export default function EventEditPage() {
                                 />
                             </Field>
                         </div>
-                        <p className="mt-2 text-sm text-gray-500">保存ボタンはモックです。実APIが用意されたら置き換えてください。</p>
+                        <p className="mt-2 text-sm text-gray-500">保存するとイベント情報が更新されます。</p>
                     </section>
 
                     {message && (

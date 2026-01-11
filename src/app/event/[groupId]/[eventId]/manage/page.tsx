@@ -4,16 +4,18 @@ import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 
+import { honoClient } from '@/lib/hono';
+
 type AttendanceStatus = 'PRESENCE' | 'PRESENCE_PARTIALLY' | 'ABSENCE' | 'UNANSWERED';
 
 type EventSummary = {
     name: string;
-    description?: string;
-    place: string;
-    mapUrl?: string;
-    startsAt: string;
-    endsAt: string;
-    registrationEndsAt: string;
+    description?: string | null;
+    place?: string | null;
+    mapUrl?: string | null;
+    startsAt?: string | null;
+    endsAt?: string | null;
+    registrationEndsAt?: string | null;
 };
 
 type AttendanceSummary = {
@@ -37,7 +39,7 @@ type ManageData = {
     event: EventSummary;
     invitation: {
         hasMail: boolean;
-        sentAt?: string;
+        sentAt?: string | null;
     };
     attendance: AttendanceSummary;
     attendees: Attendee[];
@@ -45,7 +47,8 @@ type ManageData = {
 
 type FetchState = 'idle' | 'loading' | 'error';
 
-function formatDateTime(value: string): string {
+function formatDateTime(value?: string | null): string {
+    if (!value) return '-';
     const date = new Date(value);
     return new Intl.DateTimeFormat('ja-JP', {
         year: 'numeric',
@@ -83,59 +86,34 @@ export default function EventManagePage() {
     const [showActionsMobile, setShowActionsMobile] = useState(false);
 
     const registrationClosed = useMemo(() => {
-        if (!data) return false;
+        if (!data?.event.registrationEndsAt) return false;
         return new Date(data.event.registrationEndsAt) < new Date();
     }, [data]);
 
-    const reload = () => {
+    const reload = async () => {
         setFetchState('loading');
-        // Mock fetch with a tiny delay
-        setTimeout(() => {
-            const now = new Date();
-            const startsAt = new Date(now.getTime() + 1000 * 60 * 60 * 24 * 3);
-            const endsAt = new Date(startsAt.getTime() + 1000 * 60 * 60 * 3);
-            const registrationEndsAt = new Date(startsAt.getTime() - 1000 * 60 * 60 * 12);
-
-            const attendees: Attendee[] = [
-                { id: 'u1', name: '山田 太郎', email: 'taro@example.com', status: 'PRESENCE', comment: '開始10分前に到着予定', updatedAt: now.toISOString() },
-                { id: 'u2', name: '佐藤 花子', email: 'hanako@example.com', status: 'PRESENCE_PARTIALLY', comment: '途中で抜けます', updatedAt: now.toISOString() },
-                { id: 'u3', name: '鈴木 次郎', email: 'jiro@example.com', status: 'ABSENCE', comment: '出張のため欠席', updatedAt: now.toISOString() },
-                { id: 'u4', name: '田中 三郎', email: 'saburo@example.com', status: 'UNANSWERED', updatedAt: now.toISOString() },
-            ];
-
-            const summary: AttendanceSummary = {
-                total: attendees.length,
-                presence: attendees.filter((a) => a.status === 'PRESENCE').length,
-                partial: attendees.filter((a) => a.status === 'PRESENCE_PARTIALLY').length,
-                absence: attendees.filter((a) => a.status === 'ABSENCE').length,
-                unanswered: attendees.filter((a) => a.status === 'UNANSWERED').length,
-            };
-
-            setData({
-                event: {
-                    name: 'イベント管理ダッシュボード（モック）',
-                    description: 'ここにイベントの概要が入ります。実APIができたら置き換えてください。',
-                    place: '会場A（第1会議室）',
-                    mapUrl: 'https://maps.example.com/mock',
-                    startsAt: startsAt.toISOString(),
-                    endsAt: endsAt.toISOString(),
-                    registrationEndsAt: registrationEndsAt.toISOString(),
-                },
-                invitation: {
-                    hasMail: true,
-                    sentAt: new Date(now.getTime() - 1000 * 60 * 60 * 24).toISOString(),
-                },
-                attendance: summary,
-                attendees,
+        try {
+            const response = await honoClient.api.events[':groupId'][':eventId'].manage.$get({
+                param: { groupId, eventId },
             });
+
+            if (!response.ok) {
+                setFetchState('error');
+                return;
+            }
+
+            const body = (await response.json()) as ManageData;
+            setData(body);
             setFetchState('idle');
-        }, 300);
+        } catch (e) {
+            console.error(e);
+            setFetchState('error');
+        }
     };
 
     useEffect(() => {
-        reload();
-
-    }, []);
+        void reload();
+    }, [groupId, eventId]);
 
     if (fetchState === 'loading' || !data) {
         return (
@@ -148,7 +126,7 @@ export default function EventManagePage() {
     if (fetchState === 'error') {
         return (
             <div className="flex min-h-screen items-center justify-center bg-gray-50 text-gray-600">
-                データ取得に失敗しました（モック）。
+                データ取得に失敗しました。
             </div>
         );
     }
@@ -157,7 +135,7 @@ export default function EventManagePage() {
         <div className="mx-auto max-w-6xl px-4 py-10">
             <header className="mb-6 flex flex-col gap-4">
                 <div>
-                    <p className="text-sm text-gray-500">管理ダッシュボード（モック）</p>
+                    <p className="text-sm text-gray-500">管理ダッシュボード</p>
                     <h1 className="text-3xl font-semibold text-gray-900">{data.event.name}</h1>
 
                     {data.event.description && (
@@ -184,7 +162,7 @@ export default function EventManagePage() {
                         onClick={reload}
                         className="w-full sm:w-auto rounded-md border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm hover:border-gray-300"
                     >
-                        モックを再読み込み
+                        再読み込み
                     </button>
                     <Link
                         href={`/event/${groupId}/${eventId}`}
@@ -234,7 +212,7 @@ export default function EventManagePage() {
                 </div>
                 <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
                     <p className="text-sm text-gray-500">会場</p>
-                    <p className="mt-1 text-lg font-semibold text-gray-900">{data.event.place}</p>
+                    <p className="mt-1 text-lg font-semibold text-gray-900">{data.event.place || '未設定'}</p>
                     {data.event.mapUrl && (
                         <a className="text-sm text-blue-600 hover:underline" href={data.event.mapUrl} target="_blank" rel="noreferrer">地図を開く</a>
                     )}
@@ -273,8 +251,8 @@ export default function EventManagePage() {
 
             <section className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
                 <div className="flex items-center justify-between">
-                    <h2 className="text-lg font-semibold text-gray-900">参加者リスト（モック）</h2>
-                    <p className="text-sm text-gray-500">ダブルクリックで詳細表示（将来の実装想定）</p>
+                    <h2 className="text-lg font-semibold text-gray-900">参加者リスト</h2>
+                    <p className="text-sm text-gray-500">最新の出欠状況を表示しています</p>
                 </div>
                 <div className="mt-4 overflow-x-auto rounded-md border border-gray-200">
                     <table className="min-w-[720px] md:min-w-full w-full divide-y divide-gray-200 text-sm">

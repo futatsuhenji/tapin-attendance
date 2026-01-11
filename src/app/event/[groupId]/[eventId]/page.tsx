@@ -4,8 +4,7 @@ import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'next/navigation';
 
-// NOTE: 実際のデータ取得APIは別担当のため、ここではモック実装を使います。
-// - 実運用時は `honoClient.api.events[':groupId'][':eventId']` を呼ぶよう差し替えてください。
+import { honoClient } from '@/lib/hono';
 
 
 type AttendanceStatus = 'PRESENCE' | 'PRESENCE_PARTIALLY' | 'ABSENCE' | 'UNANSWERED';
@@ -14,7 +13,7 @@ type EventPayload = {
     id: string;
     name: string;
     description: string | null;
-    place: string;
+    place?: string | null;
     mapUrl: string | null;
     allowVisitorListSharing: boolean;
     registrationEndsAt: string | null;
@@ -24,7 +23,7 @@ type EventPayload = {
 
 type AttendancePayload = {
     status: AttendanceStatus;
-    comment: string;
+    comment: string | null;
     updatedAt: string;
 };
 
@@ -57,7 +56,7 @@ function formatDateTime(value: string | null): string {
 export default function EventParticipantPage() {
     const { groupId, eventId } = useParams<{ groupId: string; eventId: string }>();
 
-    const [fetchState, setFetchState] = useState<FetchState>('idle');
+    const [fetchState, setFetchState] = useState<FetchState>('loading');
     const [fetchError, setFetchError] = useState<string | null>(null);
 
     const [event, setEvent] = useState<EventPayload | null>(null);
@@ -68,49 +67,6 @@ export default function EventParticipantPage() {
     const [selection, setSelection] = useState<AttendanceStatus>('UNANSWERED');
     const [isSaving, setIsSaving] = useState(false);
     const [saveMessage, setSaveMessage] = useState<string | null>(null);
-
-    // --- Mocked API (開発用) ---
-    async function mockFetchEventAttendance(_groupId?: string | null, _eventId?: string | null) {
-        await new Promise((r) => setTimeout(r, 300));
-        const now = new Date();
-        const startsAt = new Date(now.getTime() + 1000 * 60 * 60 * 24); // 明日開始
-        const endsAt = new Date(startsAt.getTime() + 1000 * 60 * 60 * 2); // 開始から2時間後に終了
-        const registrationEndsAt = new Date(startsAt.getTime() - 1000 * 60 * 60 * 6); // 開始6時間前に締切
-
-        const mockEvent: EventPayload = {
-            id: 'mock-event-1',
-            name: 'サンプルイベント（モック）',
-            description: 'これはモックデータです。実APIが利用可能になったら差し替えてください。',
-            place: '会場A',
-            mapUrl: null,
-            allowVisitorListSharing: false,
-            registrationEndsAt: registrationEndsAt.toISOString(),
-            startsAt: startsAt.toISOString(),
-            endsAt: endsAt.toISOString(),
-        };
-        const mockAttendance: AttendancePayload = {
-            status: 'UNANSWERED',
-            comment: '',
-            updatedAt: now.toISOString(),
-        };
-        const manage: ManageInfo = {
-            isManager: true, // 管理者としてアクセスしているモック
-        };
-        return { event: mockEvent, attendance: mockAttendance, manage } as { event: EventPayload; attendance: AttendancePayload; manage: ManageInfo };
-    }
-
-    async function mockSaveAttendance(_groupId: string | null | undefined, _eventId: string | null | undefined, attendance: AttendanceStatus, commentText: string) {
-        await new Promise((r) => setTimeout(r, 300));
-        return {
-            message: 'Attendance updated (mock)',
-            attendance: {
-                status: attendance,
-                comment: commentText,
-                updatedAt: new Date().toISOString(),
-            } as AttendancePayload,
-        } as { message: string; attendance: AttendancePayload };
-    }
-    // --- /Mocked API ---
 
     const registrationClosed = useMemo(() => {
         if (!event?.registrationEndsAt) return false;
@@ -123,12 +79,27 @@ export default function EventParticipantPage() {
             setFetchState('loading');
             setFetchError(null);
             try {
-                const data = await mockFetchEventAttendance(groupId, eventId);
+                const response = await honoClient.api.events[':groupId'][':eventId'].$get({
+                    param: { groupId, eventId },
+                });
+
+                if (!response.ok) {
+                    setFetchState('error');
+                    setFetchError('イベント情報の取得に失敗しました');
+                    return;
+                }
+
+                const data = await response.json() as {
+                    event: EventPayload;
+                    attendance: AttendancePayload | null;
+                    manage: ManageInfo;
+                };
+
                 setEvent(data.event);
                 setAttendance(data.attendance);
-                setManageInfo(data.manage);
-                setSelection(data.attendance.status);
-                setComment(data.attendance.comment ?? '');
+                setManageInfo(data.manage ?? { isManager: false });
+                setSelection(data.attendance?.status ?? 'UNANSWERED');
+                setComment(data.attendance?.comment ?? '');
                 setFetchState('idle');
             } catch (e) {
                 console.error(e);
@@ -144,9 +115,21 @@ export default function EventParticipantPage() {
         setIsSaving(true);
         setSaveMessage(null);
         try {
-            const payload = await mockSaveAttendance(groupId, eventId, selection, comment);
+            const response = await honoClient.api.events[':groupId'][':eventId'].attendance.$post({
+                param: { groupId, eventId },
+                json: { status: selection, comment },
+            });
+
+            if (!response.ok) {
+                setSaveMessage('更新に失敗しました');
+                return;
+            }
+
+            const payload = await response.json() as { attendance: AttendancePayload };
             setAttendance(payload.attendance);
-            setSaveMessage('出欠を保存しました（モック）');
+            setSelection(payload.attendance.status);
+            setComment(payload.attendance.comment ?? '');
+            setSaveMessage('出欠を保存しました');
         } catch (e) {
             console.error(e);
             setSaveMessage('更新に失敗しました');
@@ -203,7 +186,7 @@ export default function EventParticipantPage() {
                     </div>
                     <div className="rounded-lg bg-white p-4 shadow-sm border border-gray-100">
                         <p className="text-sm text-gray-500">場所</p>
-                        <p className="mt-1 text-lg text-gray-900">{event.place}</p>
+                        <p className="mt-1 text-lg text-gray-900">{event.place || '未設定'}</p>
                         {event.mapUrl && (
                             <a className="mt-2 inline-flex text-sm text-blue-600 hover:underline" href={event.mapUrl} target="_blank" rel="noreferrer">
                                 地図を開く
