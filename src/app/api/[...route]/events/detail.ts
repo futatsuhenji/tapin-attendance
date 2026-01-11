@@ -22,6 +22,7 @@ const app = new Hono()
                 select: {
                     id: true,
                     groupId: true,
+                    group: { select: { name: true } },
                     ownerId: true,
                     name: true,
                     description: true,
@@ -69,6 +70,7 @@ const app = new Hono()
                 event: {
                     id: event.id,
                     name: event.name,
+                    groupName: event.group.name,
                     description: event.description,
                     place: event.place,
                     mapUrl: event.mapUrl,

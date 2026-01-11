@@ -12,6 +12,7 @@ type AttendanceStatus = 'PRESENCE' | 'PRESENCE_PARTIALLY' | 'ABSENCE' | 'UNANSWE
 type EventPayload = {
     id: string;
     name: string;
+    groupName: string;
     description: string | null;
     place?: string | null;
     mapUrl: string | null;
@@ -158,7 +159,7 @@ export default function EventParticipantPage() {
         <div className="min-h-screen bg-gray-50">
             <div className="mx-auto max-w-5xl px-4 py-10">
                 <header className="mb-8">
-                    <p className="text-sm text-gray-500">イベント出欠</p>
+                    <p className="text-sm text-gray-500">{event.groupName}</p>
                     <div className="flex flex-wrap items-center gap-3 justify-between">
                         <h1 className="mt-2 text-3xl font-semibold text-gray-900">{event.name}</h1>
                         {manageInfo.isManager && (

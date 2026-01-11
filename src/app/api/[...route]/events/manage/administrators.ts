@@ -103,6 +103,13 @@ const app = new Hono()
                     },
                 });
 
+                // 管理者を attendance に登録
+                await tx.attendance.upsert({
+                    where: { eventId_userId: { eventId, userId: user.id } },
+                    create: { eventId, userId: user.id },
+                    update: {},
+                });
+
                 return c.json({
                     message: 'Administrator added',
                     administrator: {

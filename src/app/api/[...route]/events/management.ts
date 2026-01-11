@@ -136,6 +136,26 @@ const app = new Hono()
                         },
                     });
 
+                    // オーナーを attendance に登録
+                    await tx.attendance.upsert({
+                        where: { eventId_userId: { eventId: event.id, userId: ownerId } },
+                        create: { eventId: event.id, userId: ownerId },
+                        update: {},
+                    });
+
+                    // グループ管理者も attendance に登録
+                    const groupAdmins = await tx.eventGroupAdministrator.findMany({
+                        where: { groupId },
+                        select: { userId: true },
+                    });
+                    for (const admin of groupAdmins) {
+                        await tx.attendance.upsert({
+                            where: { eventId_userId: { eventId: event.id, userId: admin.userId } },
+                            create: { eventId: event.id, userId: admin.userId },
+                            update: {},
+                        });
+                    }
+
                     return c.json(event, 201);
                 });
             } catch (e) {
