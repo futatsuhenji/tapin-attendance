@@ -41,8 +41,11 @@ const app = new Hono()
             let user;
             try {
                 const email = await validateEmailVerificationToken(token);
-                user = await prisma.user.findUnique({
+                const defaultName = email.split('@')[0] || 'ユーザー';
+                user = await prisma.user.upsert({
                     where: { email },
+                    update: {},
+                    create: { email, name: defaultName },
                     select: { id: true, email: true },
                 });
             } catch (e) {
