@@ -76,12 +76,20 @@ export default function EventListPage() {
                         <p className="text-sm text-gray-500">イベント一覧</p>
                         <h1 className="text-3xl font-semibold text-gray-900">グループのイベント</h1>
                     </div>
-                    <Link
-                        href={`/group/${groupId}/manage`}
-                        className="rounded-md border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm hover:border-gray-300"
-                    >
-                        グループ管理へ
-                    </Link>
+                    <div className="flex flex-wrap gap-2">
+                        <Link
+                            href="/mypage"
+                            className="rounded-md border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm hover:border-gray-300"
+                        >
+                            マイページへ
+                        </Link>
+                        <Link
+                            href={`/group/${groupId}/manage`}
+                            className="rounded-md border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm hover:border-gray-300"
+                        >
+                            グループ管理へ
+                        </Link>
+                    </div>
                 </header>
 
                 {events.length === 0 ? (
@@ -97,14 +105,6 @@ export default function EventListPage() {
                                             <p className="mt-1 text-sm text-gray-700 line-clamp-2">{event.description}</p>
                                         )}
                                     </div>
-                                    {event.canManage && (
-                                        <Link
-                                            href={`/event/${groupId}/${event.id}/manage`}
-                                            className="text-sm text-blue-600 hover:underline"
-                                        >
-                                            管理
-                                        </Link>
-                                    )}
                                 </div>
                                 <div className="text-sm text-gray-600">
                                     <p>日時: {formatDateRange(event.startsAt, event.endsAt)}</p>
