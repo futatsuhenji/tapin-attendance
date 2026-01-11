@@ -2,7 +2,7 @@
 
 import React, { useEffect, useRef } from 'react';
 
-type Props = {
+type Properties = {
     open: boolean;
     title?: string;
 
@@ -23,14 +23,14 @@ export default function LinkDialog({
     onCancel,
     onConfirm,
     helperText = '',
-}: Props) {
-    const urlRef = useRef<HTMLInputElement | null>(null);
+}: Properties) {
+    const urlReference = useRef<HTMLInputElement | null>(null);
 
     // 開いたらURL入力にフォーカス
     useEffect(() => {
         if (open) {
             // 描画後にフォーカス
-            setTimeout(() => urlRef.current?.focus(), 0);
+            setTimeout(() => urlReference.current?.focus(), 0);
         }
     }, [open]);
 
@@ -50,7 +50,7 @@ export default function LinkDialog({
                 <label className="block text-sm">
                     URL
                     <input
-                        ref={urlRef}
+                        ref={urlReference}
                         className="mt-1 w-full rounded border border-slate-300 p-2"
                         value={linkUrl}
                         onChange={(e) => setLinkUrl(e.target.value)}

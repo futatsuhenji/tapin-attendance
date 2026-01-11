@@ -2,7 +2,7 @@
 
 import React, { useEffect, useRef } from 'react';
 
-type Props = {
+type Properties = {
     open: boolean;
     title?: string;
 
@@ -28,14 +28,14 @@ export default function ImageUrlDialog({
     onCancel,
     onConfirm,
     helperText = '注：メールでは外部画像が既定でブロックされる場合があります。本文が画像依存にならないようにしてください。',
-}: Props) {
-    const urlRef = useRef<HTMLInputElement | null>(null);
+}: Properties) {
+    const urlReference = useRef<HTMLInputElement | null>(null);
 
     // 開いたらURL入力にフォーカス
     useEffect(() => {
         if (open) {
             // 描画後にフォーカス
-            setTimeout(() => urlRef.current?.focus(), 0);
+            setTimeout(() => urlReference.current?.focus(), 0);
         }
     }, [open]);
 
@@ -55,7 +55,7 @@ export default function ImageUrlDialog({
                 <label className="block text-sm">
                     画像URL（必須）
                     <input
-                        ref={urlRef}
+                        ref={urlReference}
                         className="mt-1 w-full rounded border border-slate-300 p-2"
                         value={imageUrl}
                         onChange={(e) => setImageUrl(e.target.value)}

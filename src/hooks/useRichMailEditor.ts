@@ -52,13 +52,14 @@ function isSafeHttpUrl(url: string): boolean {
     }
 }
 
-export function useRichMailEditor(initialJson?: JSONContent | null) {
+export function useRichMailEditor(initialJson?: JSONContent | null, options?: { editable?: boolean }) {
     const [currentColor, setCurrentColor] = useState('#000000');
     const [blockType, setBlockType] = useState<'p' | 'h1' | 'h2' | 'h3'>('p');
     const [editorTick, setEditorTick] = useState(0);
 
     const editor = useEditor({
         immediatelyRender: false,
+        editable: options?.editable ?? true,
         extensions: [
             StarterKit.configure({
                 heading: { levels: [1, 2, 3] },
