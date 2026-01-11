@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 
 import { getJwtFromCookieStore } from '@/utils/auth';
-import { hasEventAccessPermission, hasEventManagementPermission } from '@/utils/permission';
+import { hasEventAccessPermission, hasEventGroupManagementPermission, hasEventManagementPermission } from '@/utils/permission';
 
 import type { NextRequest } from 'next/server';
 
@@ -66,6 +66,24 @@ export async function proxy(request: NextRequest) {
                             break;
                         }
                     }
+                    break;
+                }
+                case 'groups': {
+                    if (!jwt) {
+                        return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
+                    }
+
+                    // /api/groups/:groupId/...
+                    const groupId = reader.next();
+                    if (!groupId) {
+                        return NextResponse.next();
+                    }
+
+                    if (!(await hasEventGroupManagementPermission(jwt.user.id, groupId))) {
+                        console.log('Forbidden access to group:', groupId, 'by user:', jwt.user.id);
+                        return NextResponse.json({ message: 'Forbidden' }, { status: 403 });
+                    }
+
                     break;
                 }
             }
