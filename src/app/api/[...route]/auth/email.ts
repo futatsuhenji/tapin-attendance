@@ -58,7 +58,7 @@ const app = new Hono()
                     sameSite: 'Strict',
                     priority: 'High',
                 });
-                return c.redirect(redirectUrl ?? '/');
+                return c.redirect(redirectUrl ?? '/mypage');
             } else {
                 return c.json({ message: 'Invalid or expired token' }, 400);
             }

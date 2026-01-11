@@ -9,6 +9,21 @@ import { prisma } from '@/lib/prisma';
  * @returns アクセス権を持っていれば true、そうでなければ false
  */
 export async function hasEventAccessPermission(userId: string, eventId: string): Promise<boolean> {
+    const event = await prisma.event.findUnique({
+        where: { id: eventId },
+        select: { ownerId: true, groupId: true },
+    });
+
+    if (event?.ownerId === userId) return true;
+
+    if (event?.groupId && (await hasEventGroupManagementPermission(userId, event.groupId))) return true;
+
+    const admin = await prisma.eventAdministrator.findUnique({
+        where: { eventId_userId: { eventId, userId } },
+        select: { userId: true },
+    });
+    if (admin) return true;
+
     const attendance = await prisma.attendance.findUnique({
         where: { eventId_userId: { eventId, userId } },
         select: { userId: true },
@@ -27,9 +42,12 @@ export async function hasEventAccessPermission(userId: string, eventId: string):
 export async function hasEventManagementPermission(userId: string, eventId: string): Promise<boolean> {
     const event = await prisma.event.findUnique({
         where: { id: eventId },
-        select: { ownerId: true },
+        select: { ownerId: true, groupId: true },
     });
     if (event?.ownerId === userId) {
+        return true;
+    }
+    if (event?.groupId && (await hasEventGroupManagementPermission(userId, event.groupId))) {
         return true;
     }
     const admin = await prisma.eventAdministrator.findUnique({
