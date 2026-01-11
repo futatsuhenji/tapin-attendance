@@ -10,7 +10,7 @@ const decisionToAttendance = (decision: Decision) =>
     decision === 'attend' ? AttendanceType.PRESENCE : AttendanceType.ABSENCE;
 
 const app = new Hono()
-    // イベント・グループ名の基本情報取得（既存）
+    // イベント・グループ名の基本情報取得
     .get('/', async (c) => {
         const groupId = c.req.param('groupId');
         const eventId = c.req.param('eventId');
@@ -64,7 +64,6 @@ const app = new Hono()
         const token = c.req.param('token');
         const body = await c.req.json<{ status: AttendanceType; comment: string }>();
 
-        // tokenを元にレコードを特定（リレーションでUserとEventも取得）
         const attendance = await prisma.attendance.findFirst({
             where: { secret: token },
             include: {
@@ -91,17 +90,15 @@ const app = new Hono()
             },
         });
 
-        // 完了メール送信
-        const origin = new URL(c.req.url).origin;
-        const editUrl = `${origin}/event/${attendance.event.groupId}/${attendance.eventId}?token=${token}`;
-
+        // 完了メール送信 (mail.ts の新しい引数に合わせて修正)
         await sendAttendanceConfirmationMail({
             to: attendance.user.email,
             userName: attendance.user.name,
             eventName: attendance.event.name,
             attendance: body.status,
-            comment: body.comment,
-            editUrl: editUrl,
+            groupId: attendance.event.groupId,
+            eventId: attendance.eventId,
+            token: token, // 既存のトークンを使用
         });
 
         return c.json({ message: 'Updated successfully' });
@@ -140,19 +137,18 @@ const app = new Hono()
             },
         });
 
-        // 新しいトークンで完了メールを送信
-        const origin = new URL(c.req.url).origin;
-        const editUrl = `${origin}/event/${attendance.event.groupId}/${attendance.eventId}?token=${newSecret}`;
-
+        // 新しいトークンで完了メールを送信 (mail.ts の新しい引数に合わせて修正)
         await sendAttendanceConfirmationMail({
             to: attendance.user.email,
             userName: attendance.user.name,
             eventName: attendance.event.name,
             attendance: newAttendance,
-            comment: attendance.comment, // 既存のコメントを引き継ぐ
-            editUrl: editUrl,
+            groupId: attendance.event.groupId,
+            eventId: attendance.eventId,
+            token: newSecret,
         });
 
+        const origin = new URL(c.req.url).origin;
         const redirectUrl = `${origin}/event/${attendance.event.groupId}/${attendance.eventId}/response?decision=${decision}`;
         return c.redirect(redirectUrl, 302);
     });
