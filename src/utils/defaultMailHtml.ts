@@ -60,6 +60,6 @@ ${button('不参加', absenceLink, '#dc2626')}
         </td>
     </tr>
 </table>
-    `
+    `;
 
 }
