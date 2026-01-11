@@ -50,9 +50,17 @@ export default function MyPage() {
     return (
         <div className="min-h-screen bg-gray-50">
             <div className="mx-auto max-w-5xl px-4 py-10 space-y-6">
-                <header>
-                    <p className="text-sm text-gray-500">マイページ</p>
-                    <h1 className="text-3xl font-semibold text-gray-900">参加したグループ</h1>
+                <header className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                    <div>
+                        <p className="text-sm text-gray-500">マイページ</p>
+                        <h1 className="text-3xl font-semibold text-gray-900">参加したグループ</h1>
+                    </div>
+                    <Link
+                        href="/group/new"
+                        className="inline-flex items-center justify-center rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700"
+                    >
+                        グループを作成
+                    </Link>
                 </header>
 
                 {groups.length === 0 ? (
@@ -66,11 +74,6 @@ export default function MyPage() {
                                         <h2 className="text-xl font-semibold text-gray-900">{group.name}</h2>
                                         {group.description && <p className="mt-1 text-sm text-gray-700 line-clamp-2">{group.description}</p>}
                                     </div>
-                                    {group.canManage && (
-                                        <Link href={`/group/${group.id}/manage`} className="text-sm text-blue-600 hover:underline">
-                                            管理
-                                        </Link>
-                                    )}
                                 </div>
                                 <div className="flex gap-3">
                                     <Link
