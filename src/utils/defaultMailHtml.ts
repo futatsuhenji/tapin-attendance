@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 iise2xqyz <iise2xqyz@gmail.com>
+// SPDX-License-Identifier: AGPL-3.0-only
+
 const button = (label: string, href: string, color: string) =>
     `<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin-right:12px;">
         <tr>

@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 KATO Hayate <dev@hayatek.jp>
+// SPDX-FileCopyrightText: 2026 Yu Yokoyama <25w6105e@shinshu-u.ac.jp>
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { Hono } from 'hono';
 
 import manage from './events/manage';

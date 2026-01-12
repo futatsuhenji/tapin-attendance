@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 iise2xqyz <iise2xqyz@gmail.com>
+// SPDX-License-Identifier: AGPL-3.0-only
+
 'use client';
 
 import React, { useEffect, useRef } from 'react';

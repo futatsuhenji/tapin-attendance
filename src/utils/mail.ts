@@ -1,4 +1,6 @@
-// src/utils/mail.ts
+// SPDX-FileCopyrightText: 2026 Yu Yokoyama <25w6105e@shinshu-u.ac.jp>
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { transporter } from '@/lib/nodemailer';
 import { AttendanceType } from '@/generated/prisma/enums';
 
@@ -66,12 +68,12 @@ export const sendAttendanceConfirmationMail = async ({
         <div class="content">
             <p>${userName} 様</p>
             <p>「<strong>${eventName}</strong>」への出欠回答を受け付けました。</p>
-            
+
             <div class="status-card">
                 <div class="status-label">現在の回答</div>
                 <div class="status-value">${statusText}</div>
             </div>
-            
+
             <div style="text-align: center; margin-top: 32px;">
                 <p style="font-weight: bold; font-size: 14px; color: #64748b; margin-bottom: 16px; text-transform: uppercase; letter-spacing: 0.05em;">クイック変更</p>
                 <div style="text-align: center; margin-top: 12px;">

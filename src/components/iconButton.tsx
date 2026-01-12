@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 iise2xqyz <iise2xqyz@gmail.com>
+// SPDX-License-Identifier: AGPL-3.0-only
+
 export function IconButton({
     active,
     disabled,

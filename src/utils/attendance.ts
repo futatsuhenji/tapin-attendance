@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 KATO Hayate <dev@hayatek.jp>
+// SPDX-License-Identifier: AGPL-3.0-only
+
 export type AttendanceAction = 'attend' | 'absence';
 
 export const buildAttendanceLink = ({ origin, groupId, eventId, token, action }: { origin: string; groupId: string; eventId: string; token: string; action: AttendanceAction }): string => {
