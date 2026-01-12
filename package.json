@@ -1,6 +1,6 @@
 {
   "name": "tapin-attendance",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "homepage": "https://github.com/futatsuhenji/tapin-attendance",
   "bugs": {
@@ -15,11 +15,13 @@
       "url": "https://hayatek.jp/"
     },
     {
-      "name": "rieaaddlreiuu",
+      "name": "iise2xqyz",
+      "email": "iise2xqyz@gmail.com",
       "url": "https://github.com/rieaaddlreiuu"
     },
     {
-      "name": "yokoyama4580",
+      "name": "Yu Yokoyama",
+      "email": "25w6105e@shinshu-u.ac.jp",
       "url": "https://github.com/yokoyama4580"
     }
   ],
