@@ -1,3 +1,6 @@
-**					@hayatek-jp
-src/app/**			@rieaaddlreiuu
-src/components/**	@rieaaddlreiuu
+**								@hayatek-jp
+src/app/**						@hayatek-jp @rieaaddlreiuu
+src/app/api/**					@hayatek-jp
+src/components/**				@rieaaddlreiuu
+src/hooks/**					@rieaaddlreiuu
+src/utils/defaultMailHtml.ts	@rieaaddlreiuu
