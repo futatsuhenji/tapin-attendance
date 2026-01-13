@@ -29,7 +29,7 @@ export const sendAttendanceConfirmationMail = async ({
     token: string;
 }) => {
     const statusText = attendanceLabel[attendance] || '未回答';
-    const origin = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+    const origin = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000';
 
     const attendUrl = `${origin}/api/events/${groupId}/${eventId}/respond/attend?token=${token}`;
     const absenceUrl = `${origin}/api/events/${groupId}/${eventId}/respond/absence?token=${token}`;

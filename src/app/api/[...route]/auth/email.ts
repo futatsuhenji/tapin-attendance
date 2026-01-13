@@ -27,7 +27,7 @@ const app = new Hono()
                         <body>
                             <p>Tap'in出欠をご利用いただき、ありがとうございます。</p>
                             <p>以下のリンクをクリックして、メールアドレスの認証を完了してください。</p>
-                            <p><a href="http${process.env.NODE_ENV === 'production' ? 's' : ''}://${process.env.NEXT_PUBLIC_BASE_URL ?? 'localhost:3000'}/api/auth/email/verify?token=${token}${redirectUrl ? `&redirectUrl=${encodeURIComponent(redirectUrl)}` : ''}">メールアドレスを認証する</a></p>
+                            <p><a href="${process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'}/api/auth/email/verify?token=${token}${redirectUrl ? `&redirectUrl=${encodeURIComponent(redirectUrl)}` : ''}">メールアドレスを認証する</a></p>
                             <p>このリンクの有効期限は5分間です。</p>
                             <p>もしこのメールに心当たりがない場合は、破棄してください。</p>
                         </body>
