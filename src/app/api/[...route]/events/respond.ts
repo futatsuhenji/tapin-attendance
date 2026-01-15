@@ -170,7 +170,7 @@ const app = new Hono()
             token: newSecret,
         });
 
-        const origin = new URL(c.req.url).origin;
+        const origin = process.env.NEXT_PUBLIC_APP_URL!;
         const redirectUrl = `${origin}/event/${attendance.event.groupId}/${attendance.eventId}/response?decision=${decision}`;
         return c.redirect(redirectUrl, 302);
     });

@@ -3,7 +3,7 @@
 
 import { getMailTransporter } from '@/lib/nodemailer';
 import { AttendanceType } from '@/generated/prisma/enums';
-import { getEnvironmentValueOr, getEnvironmentValueOrThrow } from '@/utils/environ';
+import { getEnvironmentValueOrThrow } from '@/utils/environ';
 
 const attendanceLabel: Record<string, string> = {
     PRESENCE: '出席',
@@ -31,7 +31,7 @@ export const sendAttendanceConfirmationMail = async ({
 }) => {
     const transporter = await getMailTransporter();
     const statusText = attendanceLabel[attendance] || '未回答';
-    const origin = await getEnvironmentValueOr('NEXT_PUBLIC_APP_URL', 'http://localhost:3000');
+    const origin = process.env.NEXT_PUBLIC_APP_URL!;
 
     const attendUrl = `${origin}/api/events/${groupId}/${eventId}/respond/attend?token=${token}`;
     const absenceUrl = `${origin}/api/events/${groupId}/${eventId}/respond/absence?token=${token}`;

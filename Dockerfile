@@ -7,6 +7,8 @@ COPY package.json pnpm-*.yaml ./
 RUN npm install -g pnpm
 RUN pnpm install --frozen-lockfile
 
+ARG NEXT_PUBLIC_APP_URL
+ENV NEXT_PUBLIC_APP_URL=${NEXT_PUBLIC_APP_URL}
 ENV NODE_ENV=production
 ENV NEXT_CACHE_DIR=/tmp/next-cache
 ENV PORT=3000
@@ -20,6 +22,8 @@ FROM node:lts-alpine@sha256:c720a25dd3a78e6274d55267e76d89e5c096c46940b5ea83f7a9
 
 WORKDIR /app
 
+ARG NEXT_PUBLIC_APP_URL
+ENV NEXT_PUBLIC_APP_URL=${NEXT_PUBLIC_APP_URL}
 ENV NODE_ENV=production
 ENV NEXT_CACHE_DIR=/tmp/next-cache
 ENV PORT=3000

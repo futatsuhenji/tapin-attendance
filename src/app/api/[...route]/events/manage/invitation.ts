@@ -198,7 +198,7 @@ const app = new Hono()
                                     .map((line) => `<p style="margin: 0 0 8px;">${escapeHtml(line)}</p>`)
                                     .join('');
 
-                            const origin = new URL(c.req.url).origin;
+                            const origin = process.env.NEXT_PUBLIC_APP_URL!;
 
                             for (const attendee of attendees) {
                                 const attendLink = buildAttendanceLink({ origin, groupId, eventId, token: attendee.secret, action: 'attend' });
