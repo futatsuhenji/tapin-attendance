@@ -6,7 +6,7 @@ import { Hono } from 'hono';
 import { z } from 'zod';
 import { Prisma } from '@/generated/prisma/client';
 
-import { prisma } from '@/lib/prisma';
+import { getPrismaClient } from '@/lib/prisma';
 import { getJwtFromContext } from '@/utils/auth';
 
 const app = new Hono()
@@ -15,6 +15,7 @@ const app = new Hono()
     // パス: GET /api/events/:groupId
     // -------------------------------------------------------
     .get('/', async (c) => {
+        const prisma = await getPrismaClient();
         const groupId = c.req.param('groupId');
         const jwt = await getJwtFromContext(c);
 
@@ -100,6 +101,7 @@ const app = new Hono()
             }),
         ),
         async (c) => {
+            const prisma = await getPrismaClient();
             const groupId = c.req.param('groupId');
             const {
                 name,

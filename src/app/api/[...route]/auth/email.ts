@@ -6,19 +6,21 @@ import { setCookie } from 'hono/cookie';
 import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
 
-import { transporter } from '@/lib/nodemailer';
+import { getMailTransporter } from '@/lib/nodemailer';
 import { getEmailVerificationToken, validateEmailVerificationToken, issueJwt } from '@/utils/auth';
-import { prisma } from '@/lib/prisma';
+import { getPrismaClient } from '@/lib/prisma';
+import { getEnvironmentValueOrThrow } from '@/utils/environ';
 
 
 const app = new Hono()
     .post('/request',
         zValidator('json', z.object({ email: z.email(), redirectUrl: z.string().optional() })),
         async (c) => {
+            const transporter = await getMailTransporter();
             const { email, redirectUrl } = c.req.valid('json');
             const token = await getEmailVerificationToken(email);
             await transporter.sendMail({
-                from: `Tap'in出欠 <${process.env.SMTP_USER}>`,
+                from: `Tap'in出欠 <${await getEnvironmentValueOrThrow('SMTP_USER')}>`,
                 to: email,
                 subject: '【Tap\'in出欠】メールアドレス認証',
                 html: `
@@ -40,6 +42,7 @@ const app = new Hono()
     .get('/verify',
         zValidator('query', z.object({ token: z.string(), redirectUrl: z.string().optional() })),
         async (c) => {
+            const prisma = await getPrismaClient();
             const { token, redirectUrl } = c.req.valid('query');
             let user;
             try {

@@ -1,0 +1,87 @@
+name: tapin-attendance
+services:
+  postgres:
+    image: postgres:18-alpine@sha256:b40d931bd0e7ce6eecc59a5a6ac3b3c04a01e559750e73e7086b6dbd7f8bf545
+    restart: always
+    environment:
+      POSTGRES_USER: tapin
+      POSTGRES_DB: tapin_attendance
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
+      TZ: Asia/Tokyo
+    volumes:
+      - tapin-attendance_pgdata:/var/lib/postgresql/data
+    secrets:
+      - postgres_password
+    networks:
+      - db
+  redis:
+    image: redis:8-alpine@sha256:6cbef353e480a8a6e7f10ec545f13d7d3fa85a212cdcc5ffaf5a1c818b9d3798
+    restart: always
+    secrets:
+      - redis_conf
+    command: ["redis-server", "/run/secrets/redis_conf"]
+    networks:
+      - db
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_APP_URL: http://localhost:3000
+    depends_on:
+      - postgres
+      - redis
+    restart: always
+    environment:
+      NEXT_PUBLIC_APP_URL: http://localhost:3000
+      JWT_SECRET_FILE: /run/secrets/jwt_secret
+      SMTP_HOST_FILE: /run/secrets/smtp_host
+      SMTP_PORT_FILE: /run/secrets/smtp_port
+      SMTP_USER_FILE: /run/secrets/smtp_user
+      SMTP_PASSWORD_FILE: /run/secrets/smtp_password
+      DATABASE_URL_FILE: /run/secrets/database_url
+      REDIS_URL_FILE: /run/secrets/redis_url
+    secrets:
+      - jwt_secret
+      - smtp_host
+      - smtp_port
+      - smtp_user
+      - smtp_password
+      - database_url
+      - redis_url
+    ports:
+      - 3000:3000
+    networks:
+      - app
+      - db
+
+volumes:
+  tapin-attendance_pgdata:
+
+networks:
+  app:
+    driver: bridge
+    internal: false
+  db:
+    driver: bridge
+    internal: true
+
+secrets:
+  jwt_secret:
+    file: .secrets/jwt_secret
+  smtp_host:
+    file: .secrets/smtp_host
+  smtp_port:
+    file: .secrets/smtp_port
+  smtp_user:
+    file: .secrets/smtp_user
+  smtp_password:
+    file: .secrets/smtp_password
+  database_url:
+    file: .secrets/database_url
+  postgres_password:
+    file: .secrets/postgres_password
+  redis_url:
+    file: .secrets/redis_url
+  redis_conf:
+    file: .secrets/redis.conf

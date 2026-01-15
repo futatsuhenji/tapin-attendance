@@ -3,12 +3,45 @@
 import 'dotenv/config';
 import { defineConfig } from 'prisma/config';
 
+import { readFileSync } from 'node:fs';
+
+
+/**
+ * 環境変数を取得する。もし存在しなければ undefined を返す。
+ *
+ * この関数はDockerのシークレット管理に対応している。
+ * 具体的には、環境変数 `KEY` が設定されていればその値を返し、
+ * そうでなければ `${KEY}_FILE` 環境変数で指定されたファイルの内容を返す。
+ *
+ * @param key - 環境変数のキー
+ * @returns - 環境変数の値、または undefined
+ */
+function getEnvironmentValue(key: string): string | undefined {
+    const shellEnvironmentValue = process.env[key];
+    if (shellEnvironmentValue !== undefined) {
+        return shellEnvironmentValue;
+    }
+
+    try {
+        const filePath = process.env[`${key}_FILE`];
+        if (!filePath) {
+            return undefined;
+        }
+        const fileContent = readFileSync(filePath, 'utf8');
+        return fileContent.trim();
+    } catch {
+        return undefined;
+    }
+}
+
+
+/** Prisma設定 */
 export default defineConfig({
     schema: 'prisma/schema.prisma',
     migrations: {
         path: 'prisma/migrations',
     },
     datasource: {
-        url: process.env['DATABASE_URL'],
+        url: getEnvironmentValue('DATABASE_URL'), // コンテナビルド時にはsecretsが利用できない
     },
 });

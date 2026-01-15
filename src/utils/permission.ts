@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 KATO Hayate <dev@hayatek.jp>
 // SPDX-License-Identifier: AGPL-3.0-only
 
-import { prisma } from '@/lib/prisma';
+import { getPrismaClient } from '@/lib/prisma';
 
 
 /**
@@ -12,6 +12,7 @@ import { prisma } from '@/lib/prisma';
  * @returns アクセス権を持っていれば true、そうでなければ false
  */
 export async function hasEventAccessPermission(userId: string, eventId: string): Promise<boolean> {
+    const prisma = await getPrismaClient();
     const event = await prisma.event.findUnique({
         where: { id: eventId },
         select: { ownerId: true, groupId: true },
@@ -43,6 +44,7 @@ export async function hasEventAccessPermission(userId: string, eventId: string):
  * @returns 権限を持っていれば true、そうでなければ false
  */
 export async function hasEventManagementPermission(userId: string, eventId: string): Promise<boolean> {
+    const prisma = await getPrismaClient();
     const event = await prisma.event.findUnique({
         where: { id: eventId },
         select: { ownerId: true, groupId: true },
@@ -68,6 +70,7 @@ export async function hasEventManagementPermission(userId: string, eventId: stri
  * @returns 権限を持っていれば true、そうでなければ false
  */
 export async function hasEventGroupManagementPermission(userId: string, groupId: string): Promise<boolean> {
+    const prisma = await getPrismaClient();
     const group = await prisma.eventGroup.findUnique({
         where: { id: groupId },
         select: { ownerId: true },

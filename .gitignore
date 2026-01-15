@@ -50,3 +50,7 @@ bun.lock
 
 /src/generated/
 .eslintcache
+/compose.override.yml
+!/compose.override.yml.sample
+/.secrets/*
+!/.secrets/*.sample

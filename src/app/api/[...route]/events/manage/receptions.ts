@@ -6,13 +6,15 @@ import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
 
 import { AttendanceType } from '@/generated/prisma/enums';
-import { prisma } from '@/lib/prisma';
-import { transporter } from '@/lib/nodemailer';
+import { getPrismaClient } from '@/lib/prisma';
+import { getMailTransporter } from '@/lib/nodemailer';
+import { getEnvironmentValueOrThrow } from '@/utils/environ';
 
 const attendanceOrUnanswered = (value: AttendanceType | null) => value ?? AttendanceType.UNANSWERED;
 
 const app = new Hono()
     .get('/', async (c) => {
+        const prisma = await getPrismaClient();
         const groupId = c.req.param('groupId');
         const eventId = c.req.param('eventId');
 
@@ -131,6 +133,8 @@ const app = new Hono()
             }),
         ),
         async (c) => {
+            const prisma = await getPrismaClient();
+            const transporter = await getMailTransporter();
             const groupId = c.req.param('groupId');
             const eventId = c.req.param('eventId');
             const { userId, isRecepted, receipted, amount } = c.req.valid('json');
@@ -211,7 +215,7 @@ const app = new Hono()
                         // Fire-and-forget so the API response is not delayed by email sending.
                         transporter
                             .sendMail({
-                                from: `Tap'in出欠 <${process.env.SMTP_USER}>`,
+                                from: `Tap'in出欠 <${await getEnvironmentValueOrThrow('SMTP_USER')}>`,
                                 to: attendance.user.email,
                                 subject: '会費領収書のご案内',
                                 text: `${attendance.user.name ?? ''} 様\n\nイベント「${event.name}」の会費を領収しました。\n領収金額: ${receipted} 円${remainingText}\n領収日時: ${receiptAtText}\n\n本メールにお心当たりがない場合はこのまま破棄してください。`,

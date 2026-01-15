@@ -7,10 +7,11 @@ import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
 
 import administrators from './administrators';
-import { prisma } from '@/lib/prisma';
+import { getPrismaClient } from '@/lib/prisma';
 
 const app = new Hono()
     .get('/', async (c) => {
+        const prisma = await getPrismaClient();
         const groupId = c.req.param('groupId');
 
         if (!groupId) return c.json({ message: 'Group ID is missing' }, 400);
@@ -51,6 +52,7 @@ const app = new Hono()
             }),
         ),
         async (c) => {
+            const prisma = await getPrismaClient();
             const groupId = c.req.param('groupId');
             const { name, description } = c.req.valid('json');
 
@@ -81,6 +83,7 @@ const app = new Hono()
     .delete(
         '/',
         async (c) => {
+            const prisma = await getPrismaClient();
             const groupId = c.req.param('groupId');
 
             if (!groupId) return c.json({ message: 'Group ID is missing' }, 400);

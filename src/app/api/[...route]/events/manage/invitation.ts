@@ -6,12 +6,13 @@ import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
 
-import { transporter } from '@/lib/nodemailer';
-import { PrismaClientKnownRequestError, prisma } from '@/lib/prisma';
+import { getMailTransporter } from '@/lib/nodemailer';
+import { PrismaClientKnownRequestError, getPrismaClient } from '@/lib/prisma';
 import { buildAttendanceLink } from '@/utils/attendance';
 import { Prisma } from '@/generated/prisma/client';
 import type { TransactionClient } from '@/lib/prisma';
 import { DefaultMailHtml } from '@/utils/defaultMailHtml';
+import { getEnvironmentValueOrThrow } from '@/utils/environ';
 
 
 async function isMailSent({ tx, eventId }: {tx: TransactionClient; eventId: string}): Promise<boolean> {
@@ -33,6 +34,7 @@ function htmlToText(html: string): string {
 const app = new Hono()
     .get('/',
         async (c) => {
+            const prisma = await getPrismaClient();
             const groupId = c.req.param('groupId')!;
             const eventId = c.req.param('eventId')!;
             return await prisma.$transaction(async (tx) => {
@@ -62,6 +64,7 @@ const app = new Hono()
             customHtml: z.string().optional(),
         })),
         async (c) => {
+            const prisma = await getPrismaClient();
             const groupId = c.req.param('groupId')!;
             const eventId = c.req.param('eventId')!;
             const { title, content, customJson, customHtml } = c.req.valid('json');
@@ -104,6 +107,7 @@ const app = new Hono()
             customHtml: z.string().optional(),
         })),
         async (c) => {
+            const prisma = await getPrismaClient();
             const groupId = c.req.param('groupId')!;
             const eventId = c.req.param('eventId')!;
             const { title, content, customJson, customHtml } = c.req.valid('json');
@@ -138,6 +142,7 @@ const app = new Hono()
     )
     .delete('/',
         async (c) => {
+            const prisma = await getPrismaClient();
             const groupId = c.req.param('groupId')!;
             const eventId = c.req.param('eventId')!;
             return await prisma.$transaction(async (tx) => {
@@ -164,6 +169,8 @@ const app = new Hono()
     )
     .post('/send',
         async (c) => {
+            const prisma = await getPrismaClient();
+            const transporter = await getMailTransporter();
             const groupId = c.req.param('groupId')!;
             const eventId = c.req.param('eventId')!;
             // eslint-disable-next-line sonarjs/cognitive-complexity
@@ -215,7 +222,7 @@ const app = new Hono()
                                     : `${mail.content || ''}\n\n参加: ${attendLink}\n不参加: ${absenceLink}`;
 
                                 await transporter.sendMail({
-                                    from: `Tap'in出欠 <${process.env.SMTP_USER}>`,
+                                    from: `Tap'in出欠 <${await getEnvironmentValueOrThrow('SMTP_USER')}>`,
                                     to: attendee.user.email,
                                     subject: mail.title,
                                     html,

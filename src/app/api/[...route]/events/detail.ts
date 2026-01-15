@@ -5,12 +5,13 @@ import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
 
-import { prisma } from '@/lib/prisma';
+import { getPrismaClient } from '@/lib/prisma';
 import { AttendanceType } from '@/generated/prisma/enums';
 import { getJwtFromContext } from '@/utils/auth';
 
 const app = new Hono()
     .get('/', async (c) => {
+        const prisma = await getPrismaClient();
         const groupId = c.req.param('groupId');
         const eventId = c.req.param('eventId');
 
@@ -97,6 +98,7 @@ const app = new Hono()
             comment: z.string().max(1000).optional().nullable(),
         })),
         async (c) => {
+            const prisma = await getPrismaClient();
             const groupId = c.req.param('groupId');
             const eventId = c.req.param('eventId');
             const { status, comment } = c.req.valid('json');
@@ -168,6 +170,7 @@ const app = new Hono()
             allowVisitorListSharing: z.boolean().optional(),
         })),
         async (c) => {
+            const prisma = await getPrismaClient();
             const groupId = c.req.param('groupId');
             const eventId = c.req.param('eventId');
             const data = c.req.valid('json');
@@ -199,6 +202,7 @@ const app = new Hono()
         },
     )
     .delete('/', async (c) => {
+        const prisma = await getPrismaClient();
         const groupId = c.req.param('groupId');
         const eventId = c.req.param('eventId');
 

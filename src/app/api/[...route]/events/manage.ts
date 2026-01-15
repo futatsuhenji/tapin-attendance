@@ -8,7 +8,7 @@ import members from './manage/members';
 import administrators from './manage/administrators';
 import receptions from './manage/receptions';
 import fees from './manage/fees';
-import { prisma } from '@/lib/prisma';
+import { getPrismaClient } from '@/lib/prisma';
 
 import { AttendanceType } from '@/generated/prisma/enums';
 
@@ -16,6 +16,7 @@ const attendanceOrUnanswered = (value: AttendanceType | null) => value ?? Attend
 
 const app = new Hono()
     .get('/', async (c) => {
+        const prisma = await getPrismaClient();
         const groupId = c.req.param('groupId');
         const eventId = c.req.param('eventId');
 

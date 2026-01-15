@@ -6,7 +6,7 @@ import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
 
 import { AttendanceType } from '@/generated/prisma/enums';
-import { prisma } from '@/lib/prisma';
+import { getPrismaClient } from '@/lib/prisma';
 
 const attendanceOrUnanswered = (value: AttendanceType | null) => value ?? AttendanceType.UNANSWERED;
 
@@ -29,6 +29,7 @@ function deriveStandardAmount(amounts: Array<number | null | undefined>): number
 }
 
 async function buildFeePayload(eventId: string, groupId: string) {
+    const prisma = await getPrismaClient();
     const event = await prisma.event.findUnique({
         where: { id: eventId },
         select: {
@@ -103,6 +104,7 @@ const app = new Hono()
         '/',
         zValidator('json', z.object({ amount: z.number().int().nonnegative() })),
         async (c) => {
+            const prisma = await getPrismaClient();
             const groupId = c.req.param('groupId');
             const eventId = c.req.param('eventId');
             const { amount } = c.req.valid('json');

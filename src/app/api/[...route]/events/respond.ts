@@ -4,7 +4,7 @@
 
 import { Hono } from 'hono';
 import { AttendanceType } from '@/generated/prisma/enums';
-import { prisma } from '@/lib/prisma';
+import { getPrismaClient } from '@/lib/prisma';
 import cuid from 'cuid';
 import { sendAttendanceConfirmationMail } from '@/utils/mail';
 
@@ -16,6 +16,7 @@ const decisionToAttendance = (decision: Decision) =>
 const app = new Hono()
     // イベント・グループ名の基本情報取得
     .get('/', async (c) => {
+        const prisma = await getPrismaClient();
         const groupId = c.req.param('groupId');
         const eventId = c.req.param('eventId');
 
@@ -47,6 +48,7 @@ const app = new Hono()
 
     // 1. 出欠状況を取得するAPI (Web表示用)
     .get('/status/:token', async (c) => {
+        const prisma = await getPrismaClient();
         const token = c.req.param('token');
 
         const attendance = await prisma.attendance.findFirst({
@@ -79,6 +81,7 @@ const app = new Hono()
 
     // 2. Webからの回答上書き保存API
     .patch('/status/:token', async (c) => {
+        const prisma = await getPrismaClient();
         const token = c.req.param('token');
         const body = await c.req.json<{ status: AttendanceType; comment: string }>();
 
@@ -124,6 +127,7 @@ const app = new Hono()
 
     // 3. メール内の「出席/欠席」ボタンからの1クリック回答API
     .get('/:decision', async (c) => {
+        const prisma = await getPrismaClient();
         const decision = c.req.param('decision') as Decision;
         const token = c.req.query('token');
 

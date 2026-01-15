@@ -1,8 +1,9 @@
 // SPDX-FileCopyrightText: 2026 Yu Yokoyama <25w6105e@shinshu-u.ac.jp>
 // SPDX-License-Identifier: AGPL-3.0-only
 
-import { transporter } from '@/lib/nodemailer';
+import { getMailTransporter } from '@/lib/nodemailer';
 import { AttendanceType } from '@/generated/prisma/enums';
+import { getEnvironmentValueOr, getEnvironmentValueOrThrow } from '@/utils/environ';
 
 const attendanceLabel: Record<string, string> = {
     PRESENCE: '出席',
@@ -28,15 +29,16 @@ export const sendAttendanceConfirmationMail = async ({
     eventId: string;
     token: string;
 }) => {
+    const transporter = await getMailTransporter();
     const statusText = attendanceLabel[attendance] || '未回答';
-    const origin = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000';
+    const origin = await getEnvironmentValueOr('NEXT_PUBLIC_APP_URL', 'http://localhost:3000');
 
     const attendUrl = `${origin}/api/events/${groupId}/${eventId}/respond/attend?token=${token}`;
     const absenceUrl = `${origin}/api/events/${groupId}/${eventId}/respond/absence?token=${token}`;
     const editUrl = `${origin}/event/${groupId}/${eventId}?token=${token}`;
 
     await transporter.sendMail({
-        from: `"Tap'in出欠" <${process.env.SMTP_USER}>`,
+        from: `"Tap'in出欠" <${await getEnvironmentValueOrThrow('SMTP_USER')}>`,
         to,
         subject: `【Tap'in出欠】「${eventName}」回答控え`,
         html: `

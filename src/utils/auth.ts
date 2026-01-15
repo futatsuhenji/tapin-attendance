@@ -9,6 +9,7 @@ import { SignJWT, jwtVerify } from 'jose';
 import { cookies } from 'next/headers';
 
 import { getRedisClient } from '@/lib/redis';
+import { getEnvironmentValueOrThrow } from '@/utils/environ';
 
 import type { Context } from 'hono';
 import type { JWTPayload } from 'hono/utils/jwt/types';
@@ -77,7 +78,7 @@ type JwtPayload = JWTPayload & { // NOTE: J['exp']および['iat']を `Date` に
  * @returns JWTとそのペイロード
  */
 export async function issueJwt(content: JwtUserContent): Promise<[string, JwtPayload]> {
-    const secret = new TextEncoder().encode(process.env.JWT_SECRET ?? 'dev-jwt-secret');
+    const secret = new TextEncoder().encode(await getEnvironmentValueOrThrow('JWT_SECRET'));
     const now = new Date(Date.now());
     const expiresAt: Date = new Date(now.getTime() + 1000 * 60 * 60 * 24 * 3);
     const payload = {
@@ -101,7 +102,7 @@ export async function issueJwt(content: JwtUserContent): Promise<[string, JwtPay
  * @returns JWTペイロード
  */
 export async function verifyJwt(token: string): Promise<JwtPayload> {
-    const secret = new TextEncoder().encode(process.env.JWT_SECRET ?? 'dev-jwt-secret');
+    const secret = new TextEncoder().encode(await getEnvironmentValueOrThrow('JWT_SECRET'));
     const { payload } = await jwtVerify(token, secret);
     return payload as unknown as JwtPayload;
 }

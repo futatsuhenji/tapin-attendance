@@ -6,7 +6,7 @@ import { zValidator } from '@hono/zod-validator';
 import { Hono } from 'hono';
 import { z } from 'zod';
 
-import { prisma } from '@/lib/prisma';
+import { getPrismaClient } from '@/lib/prisma';
 import { getJwtFromContext } from '@/utils/auth';
 
 import handler from './groups/handler';
@@ -26,6 +26,7 @@ const app = new Hono()
     .get(
         '/',
         async (c) => {
+            const prisma = await getPrismaClient();
             const jwt = await getJwtFromContext(c);
 
             if (!jwt) {
@@ -99,6 +100,7 @@ const app = new Hono()
             }),
         ),
         async (c) => {
+            const prisma = await getPrismaClient();
             const { name, ownerId, description } = c.req.valid('json');
 
             try {

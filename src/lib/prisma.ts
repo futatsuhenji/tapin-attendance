@@ -2,6 +2,8 @@ import { PrismaClient } from '@/generated/prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { Pool } from 'pg';
 
+import { getEnvironmentValueOrThrow } from '@/utils/environ';
+
 export { PrismaClientKnownRequestError } from '@/generated/prisma/internal/prismaNamespace';
 export type { TransactionClient } from '@/generated/prisma/internal/prismaNamespace';
 
@@ -11,22 +13,23 @@ const globalForPrisma = globalThis as unknown as {
 };
 
 
-export const prisma =
-    globalForPrisma.prisma ??
-    (() => {
+export async function getPrismaClient(): Promise<PrismaClient> {
+    if (!globalForPrisma.prisma) {
         const pool = new Pool({
-            connectionString: process.env.DATABASE_URL,
+            connectionString: await getEnvironmentValueOrThrow('DATABASE_URL'),
         });
-
         const adapter = new PrismaPg(pool);
 
-        return new PrismaClient({
+        const prismaClient = new PrismaClient({
             adapter,
             log: process.env.NODE_ENV !== 'production' ? ['info', 'warn', 'error'] : ['query', 'info', 'warn', 'error'],
         });
-    })();
 
 
-if (process.env.NODE_ENV !== 'production') {
-    globalForPrisma.prisma = prisma;
+        globalForPrisma.prisma = prismaClient;
+    }
+
+
+
+    return globalForPrisma.prisma;
 }

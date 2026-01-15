@@ -5,14 +5,16 @@ import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
 
-import { transporter } from '@/lib/nodemailer';
-import { prisma } from '@/lib/prisma';
+import { getMailTransporter } from '@/lib/nodemailer';
+import { getPrismaClient } from '@/lib/prisma';
 import { buildAttendanceLink } from '@/utils/attendance';
 import { AttendanceType } from '@/generated/prisma/enums';
+import { getEnvironmentValueOrThrow } from '@/utils/environ';
 
 
 const app = new Hono()
     .get('/', async (c) => {
+        const prisma = await getPrismaClient();
         const groupId = c.req.param('groupId')!;
         const eventId = c.req.param('eventId')!;
         return await prisma.$transaction(async (tx) => {
@@ -43,6 +45,8 @@ const app = new Hono()
             }),
         ),
         async (c) => {
+            const prisma = await getPrismaClient();
+            const transporter = await getMailTransporter();
             const groupId = c.req.param('groupId')!;
             const eventId = c.req.param('eventId')!;
             const { email, name } = c.req.valid('json');
@@ -128,7 +132,7 @@ const app = new Hono()
                         const text = `${event.eventMail.content || ''}\n\n参加: ${attendLink}\n不参加: ${absenceLink}`;
 
                         await transporter.sendMail({
-                            from: `Tap'in出欠 <${process.env.SMTP_USER}>`,
+                            from: `Tap'in出欠 <${await getEnvironmentValueOrThrow('SMTP_USER')}>`,
                             to: user.email,
                             subject: event.eventMail.title,
                             html,
@@ -163,6 +167,7 @@ const app = new Hono()
     .delete('/',
         zValidator('json', z.object({ userId: z.cuid() })),
         async (c) => {
+            const prisma = await getPrismaClient();
             const groupId = c.req.param('groupId')!;
             const eventId = c.req.param('eventId')!;
             const { userId } = c.req.valid('json');
