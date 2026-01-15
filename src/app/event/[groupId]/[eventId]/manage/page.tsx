@@ -54,6 +54,7 @@ type ManageData = {
     invitation: {
         hasMail: boolean;
         sentAt?: string | null;
+        mailSent: boolean;
     };
     attendance: AttendanceSummary;
     attendees: Attendee[];
@@ -595,7 +596,7 @@ export default function EventManagePage() {
                     {addState === 'saved' && !addError && <p className="text-sm text-emerald-600 sm:col-span-3">参加者を追加しました</p>}
                 </div>
                 <div className="mt-4 overflow-x-auto rounded-md border border-gray-200">
-                    <table className="min-w-[720px] md:min-w-full w-full divide-y divide-gray-200 text-sm">
+                    <table className="min-w-[820px] md:min-w-full w-full divide-y divide-gray-200 text-sm">
                         <thead className="bg-gray-50">
                             <tr>
                                 <th className="px-4 py-2 text-left font-medium text-gray-700">名前</th>
@@ -603,6 +604,7 @@ export default function EventManagePage() {
                                 <th className="px-4 py-2 text-left font-medium text-gray-700">ステータス</th>
                                 <th className="px-4 py-2 text-left font-medium text-gray-700">コメント</th>
                                 <th className="px-4 py-2 text-left font-medium text-gray-700">更新</th>
+                                {!data.invitation.mailSent && <th className="px-4 py-2 text-left font-medium text-gray-700">操作</th>}
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-200 bg-white">
@@ -617,6 +619,32 @@ export default function EventManagePage() {
                                     </td>
                                     <td className="px-4 py-2 text-gray-700">{attendee.comment ?? '—'}</td>
                                     <td className="px-4 py-2 text-gray-600">{formatDateTime(attendee.updatedAt)}</td>
+                                    {!data.invitation.mailSent && (
+                                        <td className="px-4 py-2">
+                                            <button
+                                                type="button"
+                                                onClick={async () => {
+                                                    if (!groupId || !eventId) return;
+                                                    const confirmed = globalThis.confirm('この参加者を削除しますか？');
+                                                    if (!confirmed) return;
+                                                    const response = await fetch(`/api/events/${groupId}/${eventId}/manage/members`, {
+                                                        method: 'DELETE',
+                                                        headers: { 'Content-Type': 'application/json' },
+                                                        body: JSON.stringify({ userId: attendee.id }),
+                                                    });
+                                                    if (!response.ok) {
+                                                        const body = await response.json().catch(() => null) as { message?: string } | null;
+                                                        alert(body?.message ?? '削除に失敗しました');
+                                                        return;
+                                                    }
+                                                    await reload(true);
+                                                }}
+                                                className="inline-flex items-center rounded-md border border-red-200 px-3 py-1 text-xs font-semibold text-red-700 hover:bg-red-50"
+                                            >
+                                                削除
+                                            </button>
+                                        </td>
+                                    )}
                                 </tr>
                             ))}
                         </tbody>

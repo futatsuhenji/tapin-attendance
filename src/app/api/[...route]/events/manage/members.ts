@@ -483,6 +483,11 @@ const app = new Hono()
             const eventId = c.req.param('eventId')!;
             const { userId } = c.req.valid('json');
             return await prisma.$transaction(async (tx) => {
+                const mailSent = (await tx.attendance.count({ where: { eventId, attendance: { not: null } } })) > 0;
+                if (mailSent) {
+                    return c.json({ message: '招待メール送信後は削除できません' }, 400);
+                }
+
                 if (await tx.eventGroup.findUnique({ where: { id: groupId } })) {
                     if (await tx.event.findUnique({ where: { id: eventId } })) {
                         if (await tx.user.findUnique({ where: { id: userId } })) {
