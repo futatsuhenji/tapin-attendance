@@ -32,7 +32,7 @@ export async function proxy(request: NextRequest) {
     // eslint-disable-next-line sonarjs/no-small-switch
     switch (reader.next()) {
         case 'api': {
-            // eslint-disable-next-line sonarjs/no-small-switch
+
             switch (reader.next()) {
                 case 'events': {
                     // Peek next three segments: /api/events/:groupId/:eventId/:action

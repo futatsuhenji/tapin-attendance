@@ -83,6 +83,8 @@ const app = new Hono()
                 };
             });
 
+            const mailSent = event.attendances.some((attendance) => attendance.attendance !== null);
+
             return c.json({
                 event: {
                     name: event.name,
@@ -96,6 +98,7 @@ const app = new Hono()
                 invitation: {
                     hasMail: Boolean(event.eventMail),
                     sentAt: event.eventMail?.updatedAt ?? null,
+                    mailSent,
                 },
                 attendance: counts,
                 attendees,

@@ -54,6 +54,7 @@ type ManageData = {
     invitation: {
         hasMail: boolean;
         sentAt?: string | null;
+        mailSent: boolean;
     };
     attendance: AttendanceSummary;
     attendees: Attendee[];
@@ -61,6 +62,21 @@ type ManageData = {
 
 type FetchState = 'idle' | 'loading' | 'error';
 type SaveState = 'idle' | 'saving' | 'saved' | 'error';
+
+type ImportSummary = {
+    dataRows: number;
+    validRows: number;
+    processed: number;
+    createdUsers: number;
+    createdAttendances: number;
+    mailed: number;
+    skipped: {
+        empty: number;
+        invalidEmail: number;
+        duplicate: number;
+    };
+    mailSent: boolean;
+};
 
 function formatDateTime(value?: string | null): string {
     if (!value) return '-';
@@ -93,6 +109,7 @@ function badgeColor(status: AttendanceStatus): string {
     }
 }
 
+// eslint-disable-next-line sonarjs/cognitive-complexity
 export default function EventManagePage() {
     const { groupId, eventId } = useParams<{ groupId: string; eventId: string }>();
 
@@ -103,6 +120,14 @@ export default function EventManagePage() {
     const [addName, setAddName] = useState('');
     const [addState, setAddState] = useState<SaveState>('idle');
     const [addError, setAddError] = useState('');
+
+    const [importFile, setImportFile] = useState<File | null>(null);
+    const [importHasHeader, setImportHasHeader] = useState(true);
+    const [importNameColumn, setImportNameColumn] = useState('1');
+    const [importEmailColumn, setImportEmailColumn] = useState('2');
+    const [importState, setImportState] = useState<SaveState>('idle');
+    const [importError, setImportError] = useState('');
+    const [importResult, setImportResult] = useState<ImportSummary | null>(null);
 
     const [feeData, setFeeData] = useState<FeeData | null>(null);
     const [feeInput, setFeeInput] = useState('');
@@ -188,6 +213,45 @@ export default function EventManagePage() {
             setAddState('error');
         } finally {
             setTimeout(() => setAddState('idle'), 1200);
+        }
+    };
+
+    const handleImportCsv = async () => {
+        if (!groupId || !eventId || !importFile) return;
+        setImportState('saving');
+        setImportError('');
+        setImportResult(null);
+        try {
+            const form = new FormData();
+            form.set('file', importFile);
+            form.set('hasHeader', importHasHeader ? 'true' : 'false');
+            form.set('nameColumn', importNameColumn.trim());
+            form.set('emailColumn', importEmailColumn.trim());
+
+            const response = await fetch(`/api/events/${groupId}/${eventId}/manage/members/import`, {
+                method: 'POST',
+                body: form,
+            });
+
+            if (!response.ok) {
+                const body = await response.json().catch(() => null) as { message?: string } | null;
+                setImportError(body?.message ?? 'インポートに失敗しました');
+                setImportState('error');
+                return;
+            }
+
+            const body = await response.json() as { summary?: ImportSummary };
+            if (body.summary) setImportResult(body.summary);
+
+            setImportState('saved');
+            setImportFile(null);
+            await reload(true);
+        } catch (e) {
+            console.error(e);
+            setImportError('インポートに失敗しました');
+            setImportState('error');
+        } finally {
+            setTimeout(() => setImportState('idle'), 1400);
         }
     };
 
@@ -426,6 +490,77 @@ export default function EventManagePage() {
                     <h2 className="text-lg font-semibold text-gray-900">参加者リスト</h2>
                     <p className="text-sm text-gray-500">最新の出欠状況を表示しています</p>
                 </div>
+                <div className="mt-4 rounded-md border border-dashed border-gray-200 bg-gray-50 p-4">
+                    <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+                        <div>
+                            <h3 className="text-base font-semibold text-gray-900">CSVで一括追加</h3>
+                            <p className="text-sm text-gray-600">1行目をヘッダーとして扱うかを選び、列を指定してアップロードします。</p>
+                        </div>
+                        <label className="inline-flex items-center gap-2 text-sm text-gray-700">
+                            <input
+                                type="checkbox"
+                                className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                checked={importHasHeader}
+                                onChange={(event) => setImportHasHeader(event.target.checked)}
+                            />
+                            1行目はヘッダー
+                        </label>
+                    </div>
+
+                    <div className="mt-3 grid gap-3 md:grid-cols-[2fr_1fr_1fr_auto] md:items-end">
+                        <label className="space-y-1">
+                            <span className="text-sm font-medium text-gray-700">CSVファイル</span>
+                            <input
+                                type="file"
+                                accept=".csv,text/csv"
+                                onChange={(event) => setImportFile(event.target.files?.[0] ?? null)}
+                                className="block w-full cursor-pointer text-sm text-gray-800 file:mr-3 file:rounded-md file:border-0 file:bg-blue-600 file:px-4 file:py-2 file:font-medium file:text-white hover:file:bg-blue-700"
+                            />
+                        </label>
+                        <label className="space-y-1">
+                            <span className="text-sm font-medium text-gray-700">名前列</span>
+                            <input
+                                type="text"
+                                value={importNameColumn}
+                                onChange={(event) => setImportNameColumn(event.target.value)}
+                                className="w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                placeholder="例: 1 または name"
+                            />
+                        </label>
+                        <label className="space-y-1">
+                            <span className="text-sm font-medium text-gray-700">メール列</span>
+                            <input
+                                type="text"
+                                value={importEmailColumn}
+                                onChange={(event) => setImportEmailColumn(event.target.value)}
+                                className="w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                placeholder="例: 2 または email"
+                            />
+                        </label>
+                        <div className="flex gap-2 md:justify-end">
+                            <button
+                                type="button"
+                                onClick={handleImportCsv}
+                                disabled={importState === 'saving' || !importFile || !importEmailColumn.trim()}
+                                className="inline-flex items-center justify-center rounded-md bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
+                            >
+                                {importState === 'saving' ? '取り込み中…' : 'CSVをインポート'}
+                            </button>
+                        </div>
+                    </div>
+                    <p className="mt-2 text-xs text-gray-500">列番号は1始まり。ヘッダーがある場合は列名でも指定できます。</p>
+                    {importError && <p className="mt-2 text-sm text-red-600">{importError}</p>}
+                    {importResult && !importError && (
+                        <div className="mt-2 space-y-1 text-sm text-gray-700">
+                            <p>処理: {importResult.processed} 件 (有効 {importResult.validRows} / {importResult.dataRows} 行)</p>
+                            <p className="text-gray-600">
+                                新規ユーザー {importResult.createdUsers} ・新規出欠 {importResult.createdAttendances} ・スキップ {importResult.skipped.empty + importResult.skipped.invalidEmail + importResult.skipped.duplicate} ・メール送信 {importResult.mailed}
+                                {importResult.mailSent ? ' (既存テンプレートを自動送信)' : ''}
+                            </p>
+                        </div>
+                    )}
+                </div>
+
                 <div className="mt-4 grid gap-3 sm:grid-cols-[2fr_2fr_auto] sm:items-end">
                     <div>
                         <label className="block text-sm font-medium text-gray-700">メールアドレス</label>
@@ -461,7 +596,7 @@ export default function EventManagePage() {
                     {addState === 'saved' && !addError && <p className="text-sm text-emerald-600 sm:col-span-3">参加者を追加しました</p>}
                 </div>
                 <div className="mt-4 overflow-x-auto rounded-md border border-gray-200">
-                    <table className="min-w-[720px] md:min-w-full w-full divide-y divide-gray-200 text-sm">
+                    <table className="min-w-[820px] md:min-w-full w-full divide-y divide-gray-200 text-sm">
                         <thead className="bg-gray-50">
                             <tr>
                                 <th className="px-4 py-2 text-left font-medium text-gray-700">名前</th>
@@ -469,6 +604,7 @@ export default function EventManagePage() {
                                 <th className="px-4 py-2 text-left font-medium text-gray-700">ステータス</th>
                                 <th className="px-4 py-2 text-left font-medium text-gray-700">コメント</th>
                                 <th className="px-4 py-2 text-left font-medium text-gray-700">更新</th>
+                                {!data.invitation.mailSent && <th className="px-4 py-2 text-left font-medium text-gray-700">操作</th>}
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-200 bg-white">
@@ -483,6 +619,32 @@ export default function EventManagePage() {
                                     </td>
                                     <td className="px-4 py-2 text-gray-700">{attendee.comment ?? '—'}</td>
                                     <td className="px-4 py-2 text-gray-600">{formatDateTime(attendee.updatedAt)}</td>
+                                    {!data.invitation.mailSent && (
+                                        <td className="px-4 py-2">
+                                            <button
+                                                type="button"
+                                                onClick={async () => {
+                                                    if (!groupId || !eventId) return;
+                                                    const confirmed = globalThis.confirm('この参加者を削除しますか？');
+                                                    if (!confirmed) return;
+                                                    const response = await fetch(`/api/events/${groupId}/${eventId}/manage/members`, {
+                                                        method: 'DELETE',
+                                                        headers: { 'Content-Type': 'application/json' },
+                                                        body: JSON.stringify({ userId: attendee.id }),
+                                                    });
+                                                    if (!response.ok) {
+                                                        const body = await response.json().catch(() => null) as { message?: string } | null;
+                                                        alert(body?.message ?? '削除に失敗しました');
+                                                        return;
+                                                    }
+                                                    await reload(true);
+                                                }}
+                                                className="inline-flex items-center rounded-md border border-red-200 px-3 py-1 text-xs font-semibold text-red-700 hover:bg-red-50"
+                                            >
+                                                削除
+                                            </button>
+                                        </td>
+                                    )}
                                 </tr>
                             ))}
                         </tbody>
