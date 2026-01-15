@@ -90,7 +90,7 @@ export const sendAttendanceConfirmationMail = async ({
             </div>
         </div>
         <div class="footer">
-            &copy; Tap'in - シンプルな出欠管理ツール
+            &copy; Tap'in出欠 - シンプルな出欠管理ツール
         </div>
     </div>
 </body>
