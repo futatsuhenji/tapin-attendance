@@ -42,6 +42,7 @@ const app = new Hono()
                             attendance: true,
                             comment: true,
                             updatedAt: true,
+                            isMailOpened: true,
                             user: {
                                 select: {
                                     id: true,
@@ -84,6 +85,8 @@ const app = new Hono()
                 };
             });
 
+            const openedCount = event.attendances.filter((attendance) => attendance.isMailOpened).length;
+
             const mailSent = event.attendances.some((attendance) => attendance.attendance !== null);
 
             return c.json({
@@ -100,6 +103,11 @@ const app = new Hono()
                     hasMail: Boolean(event.eventMail),
                     sentAt: event.eventMail?.updatedAt ?? null,
                     mailSent,
+                },
+                mailOpen: {
+                    opened: openedCount,
+                    total: counts.total,
+                    rate: counts.total > 0 ? openedCount / counts.total : 0,
                 },
                 attendance: counts,
                 attendees,

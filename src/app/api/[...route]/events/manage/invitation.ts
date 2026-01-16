@@ -29,6 +29,11 @@ function htmlToText(html: string): string {
         .trim();
 }
 
+function appendTrackingPixel(html: string, pixelUrl: string): string {
+    const pixel = `<img src="${pixelUrl}" alt="" width="1" height="1" style="display:block;opacity:0;width:1px;height:1px;margin:0;padding:0;border:0;" aria-hidden="true" />`;
+    return `${html}<div style="overflow:hidden;height:1px;width:1px;line-height:1px;">${pixel}</div>`;
+}
+
 
 const app = new Hono()
     .get('/',
@@ -227,6 +232,7 @@ const app = new Hono()
                             for (const attendee of attendees) {
                                 const attendLink = buildAttendanceLink({ origin, groupId, eventId, token: attendee.secret, action: 'attend' });
                                 const absenceLink = buildAttendanceLink({ origin, groupId, eventId, token: attendee.secret, action: 'absence' });
+                                const trackingPixelUrl = `${origin}/api/events/${groupId}/${eventId}/open?token=${attendee.secret}`;
                                 const customHtml = (mail.custom as { html?: string } | null | undefined)?.html ?? null;
 
                                 const html = customHtml
@@ -241,6 +247,8 @@ const app = new Hono()
                                     `
                                     : DefaultMailHtml(toHtml(mail.content || ''), attendLink, absenceLink);
 
+                                const htmlWithTracking = appendTrackingPixel(html, trackingPixelUrl);
+
                                 const text = customHtml
                                     ? `${htmlToText(customHtml)}\n\n参加: ${attendLink}\n不参加: ${absenceLink}`
                                     : `${mail.content || ''}\n\n参加: ${attendLink}\n不参加: ${absenceLink}`;
@@ -249,7 +257,7 @@ const app = new Hono()
                                     from: fromAddress,
                                     to: attendee.user.email,
                                     subject: mail.title,
-                                    html,
+                                    html: htmlWithTracking,
                                     text,
                                 });
                             }

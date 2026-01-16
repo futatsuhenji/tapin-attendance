@@ -40,6 +40,12 @@ type FeeData = {
     summary: FeeSummary;
 };
 
+type MailOpenSummary = {
+    opened: number;
+    total: number;
+    rate: number;
+};
+
 type Attendee = {
     id: string;
     name: string;
@@ -56,6 +62,7 @@ type ManageData = {
         sentAt?: string | null;
         mailSent: boolean;
     };
+    mailOpen: MailOpenSummary;
     attendance: AttendanceSummary;
     attendees: Attendee[];
 };
@@ -88,6 +95,12 @@ function formatDateTime(value?: string | null): string {
         hour: '2-digit',
         minute: '2-digit',
     }).format(date);
+}
+
+function formatPercent(value: number): string {
+    if (!Number.isFinite(value)) return '0%';
+    const normalized = Math.min(Math.max(value, 0), 1);
+    return `${(normalized * 100).toFixed(1)}%`;
 }
 
 function badgeColor(status: AttendanceStatus): string {
@@ -376,7 +389,7 @@ export default function EventManagePage() {
                 </div>
             </header>
 
-            <section className="grid gap-4 md:grid-cols-3 mb-6">
+            <section className="grid gap-4 md:grid-cols-4 mb-6">
                 <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
                     <p className="text-sm text-gray-500">回答期限</p>
                     <p className="mt-1 text-lg font-semibold text-gray-900">{formatDateTime(data.event.registrationEndsAt)}</p>
@@ -394,6 +407,11 @@ export default function EventManagePage() {
                     ) : (
                         <p className="mt-1 text-lg font-semibold text-gray-900">未作成</p>
                     )}
+                </div>
+                <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
+                    <p className="text-sm text-gray-500">メール開封率</p>
+                    <p className="mt-1 text-2xl font-semibold text-gray-900">{formatPercent(data.mailOpen.rate)}</p>
+                    <p className="text-sm text-gray-600">{data.invitation.mailSent ? `開封 ${data.mailOpen.opened} / ${data.mailOpen.total} 名` : '送信前または未送信'}</p>
                 </div>
                 <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
                     <p className="text-sm text-gray-500">会場</p>
