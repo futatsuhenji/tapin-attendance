@@ -442,7 +442,7 @@ const app = new Hono()
                             from: `Tap'in出欠 <${await getEnvironmentValueOrThrow('SMTP_USER')}>`,
                             to: user.email,
                             subject: event.eventMail.title,
-                            html,
+                            html: `<!DOCTYPE html><html lang="ja"><body>${html}</body></html>`,
                             text,
                         });
 

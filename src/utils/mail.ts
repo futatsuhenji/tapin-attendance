@@ -43,7 +43,7 @@ export const sendAttendanceConfirmationMail = async ({
         subject: `【Tap'in出欠】「${eventName}」回答控え`,
         html: `
 <!DOCTYPE html>
-<html>
+<html lang="ja">
 <head>
     <meta charset="utf-8">
     <style>

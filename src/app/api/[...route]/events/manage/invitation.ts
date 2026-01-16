@@ -257,7 +257,7 @@ const app = new Hono()
                                     from: fromAddress,
                                     to: attendee.user.email,
                                     subject: mail.title,
-                                    html: htmlWithTracking,
+                                    html: `<!DOCTYPE html><html lang="ja"><body>${htmlWithTracking}</body></html>`,
                                     text,
                                 });
                             }
