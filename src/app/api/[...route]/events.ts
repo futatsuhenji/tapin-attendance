@@ -8,10 +8,12 @@ import manage from './events/manage';
 import respond from './events/respond';
 import management from './events/management';
 import detail from './events/detail';
+import open from './events/open';
 
 const app = new Hono()
     .route('/:groupId/:eventId/manage', manage)
     .route('/:groupId/:eventId/respond', respond)
+    .route('/:groupId/:eventId/open', open)
     .route('/:groupId', management)
     .route('/:groupId/:eventId', detail);
 
