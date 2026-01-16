@@ -6,23 +6,52 @@ import { getEnvironmentValueOrThrow } from '@/utils/environ';
 import type { Transporter } from 'nodemailer';
 
 
-const globalForNodemailer = globalThis as unknown as { transporter: Transporter };
+export type MailTransportConfig = {
+    host: string;
+    port: number;
+    secure?: boolean;
+    auth: {
+        user: string;
+        pass: string;
+    };
+};
+
+const globalForNodemailer = globalThis as unknown as { transporter?: Transporter };
 
 
-export async function getMailTransporter(): Promise<Transporter> {
-    if (!globalForNodemailer.transporter) {
-        const transporter = createTransport({ // eslint-disable-line sonarjs/no-clear-text-protocols
-            host: await getEnvironmentValueOrThrow('SMTP_HOST'),
-            port: Number(await getEnvironmentValueOrThrow('SMTP_PORT')),
-            secure: true,
-            auth: {
-                user: await getEnvironmentValueOrThrow('SMTP_USER'),
-                pass: await getEnvironmentValueOrThrow('SMTP_PASSWORD'),
-            },
-        } as SMTPTransport.Options);
+async function getDefaultTransportConfig(): Promise<MailTransportConfig> {
+    return {
+        host: await getEnvironmentValueOrThrow('SMTP_HOST'),
+        port: Number(await getEnvironmentValueOrThrow('SMTP_PORT')),
+        secure: true,
+        auth: {
+            user: await getEnvironmentValueOrThrow('SMTP_USER'),
+            pass: await getEnvironmentValueOrThrow('SMTP_PASSWORD'),
+        },
+    };
+}
 
-        globalForNodemailer.transporter = transporter;
+function toTransportOptions(config: MailTransportConfig): SMTPTransport.Options {
+    return {
+        ...config,
+        secure: config.secure ?? true,
+    } satisfies SMTPTransport.Options;
+}
+
+export async function getMailTransporter(config?: MailTransportConfig): Promise<Transporter> {
+    if (!config) {
+        if (!globalForNodemailer.transporter) {
+            const transporter = createTransport(toTransportOptions(await getDefaultTransportConfig())); // eslint-disable-line sonarjs/no-clear-text-protocols
+            globalForNodemailer.transporter = transporter;
+        }
+
+        return globalForNodemailer.transporter;
     }
 
-    return globalForNodemailer.transporter;
+    return createTransport(toTransportOptions(config)); // eslint-disable-line sonarjs/no-clear-text-protocols
+}
+
+export async function getDefaultMailFrom(): Promise<string> {
+    const user = await getEnvironmentValueOrThrow('SMTP_USER');
+    return `Tap'in出欠 <${user}>`;
 }

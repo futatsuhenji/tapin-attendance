@@ -6,13 +6,12 @@ import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
 
-import { getMailTransporter } from '@/lib/nodemailer';
+import { getDefaultMailFrom, getMailTransporter } from '@/lib/nodemailer';
 import { PrismaClientKnownRequestError, getPrismaClient } from '@/lib/prisma';
 import { buildAttendanceLink } from '@/utils/attendance';
 import { Prisma } from '@/generated/prisma/client';
 import type { TransactionClient } from '@/lib/prisma';
 import { DefaultMailHtml } from '@/utils/defaultMailHtml';
-import { getEnvironmentValueOrThrow } from '@/utils/environ';
 
 
 async function isMailSent({ tx, eventId }: {tx: TransactionClient; eventId: string}): Promise<boolean> {
@@ -170,7 +169,6 @@ const app = new Hono()
     .post('/send',
         async (c) => {
             const prisma = await getPrismaClient();
-            const transporter = await getMailTransporter();
             const groupId = c.req.param('groupId')!;
             const eventId = c.req.param('eventId')!;
             // eslint-disable-next-line sonarjs/cognitive-complexity
@@ -183,6 +181,32 @@ const app = new Hono()
                                 where: { eventId },
                                 select: { secret: true, user: { select: { email: true, name: true } } },
                             });
+
+                            const smtpSetting = await tx.eventSmtpSetting.findUnique({
+                                where: { eventId },
+                                select: {
+                                    host: true,
+                                    port: true,
+                                    secure: true,
+                                    user: true,
+                                    password: true,
+                                    fromName: true,
+                                    fromEmail: true,
+                                },
+                            });
+
+                            const transporter = await getMailTransporter(smtpSetting
+                                ? {
+                                    host: smtpSetting.host,
+                                    port: smtpSetting.port,
+                                    secure: smtpSetting.secure,
+                                    auth: { user: smtpSetting.user, pass: smtpSetting.password },
+                                }
+                                : undefined);
+
+                            const fromAddress = smtpSetting
+                                ? `${smtpSetting.fromName?.trim() || 'Tap\'in出欠'} <${smtpSetting.fromEmail?.trim() || smtpSetting.user}>`
+                                : await getDefaultMailFrom();
 
                             const escapeHtml = (text: string) =>
                                 text
@@ -222,7 +246,7 @@ const app = new Hono()
                                     : `${mail.content || ''}\n\n参加: ${attendLink}\n不参加: ${absenceLink}`;
 
                                 await transporter.sendMail({
-                                    from: `Tap'in出欠 <${await getEnvironmentValueOrThrow('SMTP_USER')}>`,
+                                    from: fromAddress,
                                     to: attendee.user.email,
                                     subject: mail.title,
                                     html,

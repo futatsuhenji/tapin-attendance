@@ -22,6 +22,7 @@ const route = app
 export const GET = handle(route);
 export const POST = handle(route);
 export const PATCH = handle(route);
+export const PUT = handle(route);
 export const DELETE = handle(route);
 
 export type AppType = typeof route;
