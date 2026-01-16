@@ -40,8 +40,8 @@ export function DefaultMailHtml(body: string, attendLink: string, absenceLink: s
                         </div>
 
                         <!-- ボタン行 -->
-                        <table role="presentation" cellpadding="0" cellspacing="0" border="0"
-                            style="border-collapse:separate;margin-top:16px;">
+                        <table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center"
+                            style="border-collapse:separate;margin:16px auto 0;">
                             <tr>
                                 <!-- 参加 -->
                                 <td style="padding-right:12px;">

@@ -65,7 +65,7 @@ export const sendAttendanceConfirmationMail = async ({
 <body>
     <div class="container">
         <div class="header">
-            <h1>Tap'in 出欠回答</h1>
+            <h1>Tap'in出欠</h1>
         </div>
         <div class="content">
             <p>${userName} 様</p>
