@@ -29,9 +29,9 @@ function htmlToText(html: string): string {
         .trim();
 }
 
-function appendTrackingPixel(html: string, pixelUrl: string): string {
-    const pixel = `<img src="${pixelUrl}" alt="" width="1" height="1" style="display:block;opacity:0;width:1px;height:1px;margin:0;padding:0;border:0;" aria-hidden="true" />`;
-    return `${html}<div style="overflow:hidden;height:1px;width:1px;line-height:1px;">${pixel}</div>`;
+function appendTrackingPicture(html: string, logoUrl: string): string {
+    const logo = `<img src="${logoUrl}" alt="Tap'in logo" style="display:block;margin:24px auto 0;width:160px;height:auto;" />`;
+    return `${html}${logo}`;
 }
 
 
@@ -247,7 +247,7 @@ const app = new Hono()
                                     `
                                     : DefaultMailHtml(toHtml(mail.content || ''), attendLink, absenceLink);
 
-                                const htmlWithTracking = appendTrackingPixel(html, trackingPixelUrl);
+                                const htmlWithTracking = appendTrackingPicture(html, trackingPixelUrl);
 
                                 const text = customHtml
                                     ? `${htmlToText(customHtml)}\n\n参加: ${attendLink}\n不参加: ${absenceLink}`
