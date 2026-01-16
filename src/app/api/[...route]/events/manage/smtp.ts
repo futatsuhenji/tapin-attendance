@@ -84,7 +84,7 @@ const app = new Hono()
             }
 
             if (!payload.enabled) {
-                await tx.eventSmtpSetting.delete({ where: { eventId } }).catch(() => {});
+                await tx.eventSmtpSetting.deleteMany({ where: { eventId } });
                 return c.json({ message: 'SMTP setting disabled' }, 200);
             }
 
