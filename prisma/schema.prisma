@@ -199,7 +199,7 @@ enum AttendanceType {
 model Attendance {
   eventId      String          @map("event_id")
   userId       String          @map("user_id")
-  secret       String          @default(cuid())
+  secret       String          @default(cuid()) @unique
   isMailOpened Boolean         @default(false) @map("is_mail_opened")
   attendance   AttendanceType?
   comment      String?
