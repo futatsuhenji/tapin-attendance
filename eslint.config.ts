@@ -55,6 +55,7 @@ export default defineConfig([
             'react-hooks/set-state-in-effect': 'off',
 
             'sonarjs/no-unused-vars': 'off', // 競合回避のため
+            'sonarjs/todo-tag': 'warn',
 
             'tsdoc/syntax': 'error',
 

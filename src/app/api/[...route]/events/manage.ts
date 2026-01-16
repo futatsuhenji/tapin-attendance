@@ -8,6 +8,7 @@ import members from './manage/members';
 import administrators from './manage/administrators';
 import receptions from './manage/receptions';
 import fees from './manage/fees';
+import smtp from './manage/smtp';
 import { getPrismaClient } from '@/lib/prisma';
 
 import { AttendanceType } from '@/generated/prisma/enums';
@@ -113,6 +114,7 @@ const app = new Hono()
     .route('/members', members)
     .route('/administrators', administrators)
     .route('/receptions', receptions)
-    .route('/fees', fees);
+    .route('/fees', fees)
+    .route('/smtp', smtp);
 
 export default app;
