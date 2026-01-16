@@ -58,12 +58,20 @@ export default function MyPage() {
                         <p className="text-sm text-gray-500">マイページ</p>
                         <h1 className="text-3xl font-semibold text-gray-900">参加したグループ</h1>
                     </div>
-                    <Link
-                        href="/group/new"
-                        className="inline-flex items-center justify-center rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700"
-                    >
-                        グループを作成
-                    </Link>
+                    <div className="flex flex-wrap gap-2">
+                        <Link
+                            href="/settings"
+                            className="inline-flex items-center justify-center rounded-md border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-gray-700 shadow-sm transition hover:border-gray-300"
+                        >
+                            設定
+                        </Link>
+                        <Link
+                            href="/group/new"
+                            className="inline-flex items-center justify-center rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700"
+                        >
+                            グループを作成
+                        </Link>
+                    </div>
                 </header>
 
                 {groups.length === 0 ? (
