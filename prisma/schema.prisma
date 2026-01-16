@@ -92,6 +92,7 @@ model Event {
   receptions     Reception[]          @relation("EventReception")
   feeReceipts    EventFee[]           @relation("EventFee")
   eventMail      EventMail?           @relation("EventMail")
+  smtpSetting    EventSmtpSetting?    @relation("EventSmtpSetting")
   massMails      MassMail[]           @relation("EventMassMail")
   directMails    DirectMail[]         @relation("DirectMail")
 
@@ -124,6 +125,24 @@ model EventMail {
   event Event @relation("EventMail", fields: [eventId], references: [id])
 
   @@map("event_mails")
+}
+
+/// イベントごとのSMTP設定
+model EventSmtpSetting {
+  eventId   String   @id @map("event_id")
+  host      String
+  port      Int
+  secure    Boolean  @default(true)
+  user      String
+  password  String
+  fromName  String?  @map("from_name")
+  fromEmail String?  @map("from_email")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz()
+
+  event Event @relation("EventSmtpSetting", fields: [eventId], references: [id])
+
+  @@map("event_smtp_settings")
 }
 
 /// アンケート種別
