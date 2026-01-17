@@ -277,7 +277,12 @@ const app = new Hono()
                                 });
                             }
 
-                            await tx.attendance.updateMany({ where: { eventId }, data: { 'attendance': 'UNANSWERED' } });
+                            // eslint-disable-next-line unicorn/prefer-ternary
+                            if (targetId) {
+                                await tx.attendance.updateMany({ where: { eventId, userId: targetId }, data: { 'attendance': 'UNANSWERED' } });
+                            } else {
+                                await tx.attendance.updateMany({ where: { eventId }, data: { 'attendance': 'UNANSWERED' } });
+                            }
                             return c.json({ message: 'Mails sent' }, 201);
                         } else {
                             return c.json({ message: 'Mail not found' }, 404);
