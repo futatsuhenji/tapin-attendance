@@ -172,20 +172,35 @@ const app = new Hono()
         },
     )
     .post('/send',
+        zValidator('json', z.object({ targetId: z.cuid().optional() })),
         async (c) => {
             const prisma = await getPrismaClient();
             const groupId = c.req.param('groupId')!;
             const eventId = c.req.param('eventId')!;
+            const { targetId } = c.req.valid('json');
             // eslint-disable-next-line sonarjs/cognitive-complexity
             return await prisma.$transaction(async (tx) => {
                 if (await tx.eventGroup.findUnique({ where: { id: groupId } })) {
                     if (await tx.event.findUnique({ where: { id: eventId } })) {
                         const mail = await tx.eventMail.findUnique({ where: { eventId } });
                         if (mail) {
-                            const attendees = await tx.attendance.findMany({
-                                where: { eventId },
-                                select: { secret: true, user: { select: { email: true, name: true } } },
-                            });
+                            let attendees;
+                            if (targetId) {
+                                const attendee = await tx.attendance.findUnique({
+                                    where: { eventId_userId: { eventId, userId: targetId } },
+                                    select: { secret: true, user: { select: { email: true, name: true } } },
+                                });
+                                if (attendee) {
+                                    attendees = [attendee];
+                                } else {
+                                    return c.json({ message: 'Attendee not found' }, 404);
+                                }
+                            } else {
+                                attendees = await tx.attendance.findMany({
+                                    where: { eventId },
+                                    select: { secret: true, user: { select: { email: true, name: true } } },
+                                });
+                            }
 
                             const smtpSetting = await tx.eventSmtpSetting.findUnique({
                                 where: { eventId },

@@ -13,7 +13,7 @@ import { getEnvironmentValueOrThrow } from '@/utils/environ';
 
 
 const MAX_IMPORT_ROWS = 2000;
-const emailSchema = z.string().email();
+const emailSchema = z.email();
 
 type ParsedCsvRow = {
     email: string;
@@ -117,13 +117,12 @@ const app = new Hono()
         zValidator(
             'json',
             z.object({
-                email: z.string().email(),
+                email: z.email(),
                 name: z.string().min(1).optional(),
             }),
         ),
         async (c) => {
             const prisma = await getPrismaClient();
-            const transporter = await getMailTransporter();
             const groupId = c.req.param('groupId')!;
             const eventId = c.req.param('eventId')!;
             const { email, name } = c.req.valid('json');
@@ -170,57 +169,6 @@ const app = new Hono()
                             secret: true,
                         },
                     });
-
-                    const mailSent = event.eventMail
-                        ? (await tx.attendance.count({ where: { eventId, attendance: { not: null } } })) > 0
-                        : false;
-
-                    if (event.eventMail && mailSent) {
-                        const origin = new URL(c.req.url).origin;
-                        const attendLink = buildAttendanceLink({ origin, groupId, eventId, token: attendance.secret, action: 'attend' });
-                        const absenceLink = buildAttendanceLink({ origin, groupId, eventId, token: attendance.secret, action: 'absence' });
-
-                        const escapeHtml = (text: string) =>
-                            text
-                                .replaceAll('&', '&amp;')
-                                .replaceAll('<', '&lt;')
-                                .replaceAll('>', '&gt;')
-                                .replaceAll('"', '&quot;')
-                                .replaceAll('\'', '&#39;');
-
-                        const toHtml = (text: string) =>
-                            (text || '')
-                                .split('\n')
-                                .map((line) => `<p style="margin: 0 0 8px;">${escapeHtml(line)}</p>`)
-                                .join('');
-
-                        const button = (label: string, href: string, color: string) =>
-                            `<a href="${href}" style="display:inline-block;padding:10px 16px;border-radius:8px;background:${color};color:#fff;text-decoration:none;font-weight:600;">${label}</a>`;
-
-                        const html = `
-                            <div style="font-size:14px;line-height:1.6;">
-                                ${toHtml(event.eventMail.content || '')}
-                                <div style="margin-top:16px;display:flex;gap:12px;align-items:center;">
-                                    ${button('参加', attendLink, '#2563eb')}
-                                    ${button('不参加', absenceLink, '#dc2626')}
-                                </div>
-                            </div>
-                        `;
-                        const text = `${event.eventMail.content || ''}\n\n参加: ${attendLink}\n不参加: ${absenceLink}`;
-
-                        await transporter.sendMail({
-                            from: `Tap'in出欠 <${await getEnvironmentValueOrThrow('SMTP_USER')}>`,
-                            to: user.email,
-                            subject: event.eventMail.title,
-                            html,
-                            text,
-                        });
-
-                        await tx.attendance.update({
-                            where: { eventId_userId: { eventId, userId: user.id } },
-                            data: { attendance: AttendanceType.UNANSWERED },
-                        });
-                    }
 
                     return c.json({
                         message: 'Participant added',
