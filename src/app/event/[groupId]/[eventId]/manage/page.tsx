@@ -214,6 +214,14 @@ export default function EventManagePage() {
                 setAddError(body?.message ?? '追加に失敗しました');
                 setAddState('error');
                 return;
+            } else {
+                if (data?.invitation.mailSent) {
+                    const responseData = await response.json() as { attendee: { id: string } };
+                    await honoClient.api.events[':groupId'][':eventId'].manage.invitation.send.$post({
+                        param: { groupId, eventId },
+                        json: { targetId: responseData.attendee.id },
+                    });
+                }
             }
 
             setAddState('saved');

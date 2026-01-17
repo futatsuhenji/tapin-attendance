@@ -228,6 +228,7 @@ export default function EventInvitationPage() {
                     groupId,
                     eventId,
                 },
+                json: {},
             });
             if (response.ok) {
                 setMode('view');
