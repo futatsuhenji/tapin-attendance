@@ -41,7 +41,7 @@ export async function proxy(request: NextRequest) {
                     const seg3 = reader.next();
 
                     // allow public respond endpoints without auth: /api/events/:groupId/:eventId/respond/:decision
-                    if (seg3 === 'respond') {
+                    if (['respond', 'open'].includes(seg3!)) {
                         return NextResponse.next();
                     }
 
