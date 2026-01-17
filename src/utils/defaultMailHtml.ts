@@ -43,15 +43,15 @@ export function DefaultMailHtml(body: string, attendLink: string, absenceLink: s
                         <table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center"
                             style="border-collapse:separate;margin:16px auto 0;">
                             <tr>
-                                <!-- 参加 -->
+                                <!-- 出席 -->
                                 <td style="padding-right:12px;">
-${button('参加', attendLink, '#2563eb')}
+${button('出席', attendLink, '#2563eb')}
 
                                 </td>
 
-                                <!-- 不参加 -->
+                                <!-- 欠席 -->
                                 <td>
-${button('不参加', absenceLink, '#dc2626')}
+${button('欠席', absenceLink, '#dc2626')}
                                 </td>
                             </tr>
                         </table>

@@ -431,12 +431,12 @@ const app = new Hono()
                             <div style="font-size:14px;line-height:1.6;">
                                 ${toHtml(event.eventMail.content || '')}
                                 <div style="margin-top:16px;display:flex;gap:12px;align-items:center;">
-                                    ${button('参加', attendLink, '#2563eb')}
-                                    ${button('不参加', absenceLink, '#dc2626')}
+                                    ${button('出席', attendLink, '#2563eb')}
+                                    ${button('欠席', absenceLink, '#dc2626')}
                                 </div>
                             </div>
                         `;
-                        const text = `${event.eventMail.content || ''}\n\n参加: ${attendLink}\n不参加: ${absenceLink}`;
+                        const text = `${event.eventMail.content || ''}\n\n出席: ${attendLink}\n欠席: ${absenceLink}`;
 
                         await transporter.sendMail({
                             from: `Tap'in出欠 <${await getEnvironmentValueOrThrow('SMTP_USER')}>`,

@@ -240,8 +240,8 @@ const app = new Hono()
                                         <div style="font-size:14px;line-height:1.6;">
                                             ${customHtml}
                                             <div style="margin-top:16px;display:flex;gap:12px;align-items:center;">
-                                                <a href="${attendLink}" style="display:inline-block;padding:10px 16px;border-radius:8px;background:#2563eb;color:#fff;text-decoration:none;font-weight:600;">参加</a>
-                                                <a href="${absenceLink}" style="display:inline-block;padding:10px 16px;border-radius:8px;background:#dc2626;color:#fff;text-decoration:none;font-weight:600;">不参加</a>
+                                                <a href="${attendLink}" style="display:inline-block;padding:10px 16px;border-radius:8px;background:#2563eb;color:#fff;text-decoration:none;font-weight:600;">出席</a>
+                                                <a href="${absenceLink}" style="display:inline-block;padding:10px 16px;border-radius:8px;background:#dc2626;color:#fff;text-decoration:none;font-weight:600;">欠席</a>
                                             </div>
                                         </div>
                                     `
@@ -250,8 +250,8 @@ const app = new Hono()
                                 const htmlWithTracking = appendTrackingPicture(html, trackingPixelUrl);
 
                                 const text = customHtml
-                                    ? `${htmlToText(customHtml)}\n\n参加: ${attendLink}\n不参加: ${absenceLink}`
-                                    : `${mail.content || ''}\n\n参加: ${attendLink}\n不参加: ${absenceLink}`;
+                                    ? `${htmlToText(customHtml)}\n\n出席: ${attendLink}\n欠席: ${absenceLink}`
+                                    : `${mail.content || ''}\n\n出席: ${attendLink}\n欠席: ${absenceLink}`;
 
                                 await transporter.sendMail({
                                     from: fromAddress,

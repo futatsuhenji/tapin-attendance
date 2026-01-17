@@ -527,7 +527,7 @@ export default function EventInvitationPage() {
                                 </div>
                             </div>
                         ) : (
-                            <p className="mt-3 text-sm text-gray-600">カスタム設定を無効にすると、環境変数で指定されたSMTPで送信します。</p>
+                            <p className="mt-3 text-sm text-gray-600">カスタム設定を無効にすると、標準のサーバーから送信します。</p>
                         )}
 
                         {smtpError && <p className="mt-3 text-sm text-red-600">{smtpError}</p>}
