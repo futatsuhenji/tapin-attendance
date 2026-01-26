@@ -41,7 +41,7 @@ export default function MailSendManagePage() {
                             <div>送信先選択</div>
                             <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
-                                    <Button variant="outline">{recipientType === 'all' ? 'すべての人' : recipientType === 'going' ? '参加予定の人' : '参加した人'}</Button>
+                                    <Button variant="outline">{recipientType === 'all' ? 'すべての人' : (recipientType === 'going' ? '参加予定の人' : '参加した人')}</Button>
                                 </DropdownMenuTrigger>
 
                                 <DropdownMenuContent align="end">
