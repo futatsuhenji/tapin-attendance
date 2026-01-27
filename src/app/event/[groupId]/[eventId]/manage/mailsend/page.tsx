@@ -1,16 +1,14 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { honoClient } from '@/lib/hono';
-import type { JSONContent } from '@tiptap/react';
 import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
     DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+} from '@/components/ui/dropdownMenu';
 import { Button } from '@/components/ui/button';
 
 type RecipientType = 'all' | 'going' | 'went';
@@ -41,6 +39,7 @@ export default function MailSendManagePage() {
                             <div>送信先選択</div>
                             <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
+                                    {/* eslint-disable-next-line sonarjs/no-nested-conditional */}
                                     <Button variant="outline">{recipientType === 'all' ? 'すべての人' : (recipientType === 'going' ? '参加予定の人' : '参加した人')}</Button>
                                 </DropdownMenuTrigger>
 
