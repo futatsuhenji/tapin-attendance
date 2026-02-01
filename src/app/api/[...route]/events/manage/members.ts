@@ -189,6 +189,141 @@ const app = new Hono()
             }
         },
     )
+    .post('/mail',
+        zValidator('json', z.object({
+            title: z.string().trim().min(1),
+            content: z.string().trim().min(1),
+            target: z.enum(['all', 'planned', 'attended']),
+        })),
+        async (c) => {
+            const prisma = await getPrismaClient();
+            const groupId = c.req.param('groupId')!;
+            const eventId = c.req.param('eventId')!;
+            const { title, content, target } = c.req.valid('json');
+
+            const now = new Date();
+
+            // eslint-disable-next-line sonarjs/cognitive-complexity
+            return await prisma.$transaction(async (tx) => {
+                const event = await tx.event.findUnique({
+                    where: { id: eventId },
+                    select: { groupId: true, endsAt: true },
+                });
+
+                if (!event || event.groupId !== groupId) {
+                    return c.json({ message: 'Event not found' }, 404);
+                }
+
+                const hasEnded = event.endsAt ? new Date(event.endsAt) <= now : false;
+
+                if (target === 'planned' && hasEnded) {
+                    return c.json({ message: 'イベント終了後は「参加予定者」を選択できません' }, 400);
+                }
+
+                if (target === 'attended' && !hasEnded) {
+                    return c.json({ message: 'イベント終了後のみ「参加者」を選択できます' }, 400);
+                }
+
+                const plannedStatuses = [AttendanceType.PRESENCE, AttendanceType.PRESENCE_PARTIALLY];
+
+                const checkedInTargets = target === 'attended'
+                    ? await tx.reception.findMany({
+                        where: { eventId, isRecepted: true },
+                        select: {
+                            visitor: { select: { id: true, name: true, email: true } },
+                        },
+                    })
+                    : [];
+
+                const plannedTargets = target === 'attended' && checkedInTargets.length > 0
+                    ? []
+                    : await tx.attendance.findMany({
+                        where: {
+                            eventId,
+                            ...(target === 'planned' || target === 'attended'
+                                ? { attendance: { in: plannedStatuses } }
+                                : {}),
+                        },
+                        select: {
+                            user: { select: { id: true, name: true, email: true } },
+                        },
+                    });
+
+                const recipients = new Map<string, { name: string | null; email: string }>();
+
+                for (const record of checkedInTargets) {
+                    const user = record.visitor;
+                    if (user?.email) recipients.set(user.email, { name: user.name, email: user.email });
+                }
+
+                for (const record of plannedTargets) {
+                    const user = record.user;
+                    if (user?.email && !recipients.has(user.email)) {
+                        recipients.set(user.email, { name: user.name, email: user.email });
+                    }
+                }
+
+                if (recipients.size === 0) {
+                    return c.json({ message: '送信対象がありません' }, 400);
+                }
+
+                const smtpSetting = await tx.eventSmtpSetting.findUnique({
+                    where: { eventId },
+                    select: {
+                        host: true,
+                        port: true,
+                        secure: true,
+                        user: true,
+                        password: true,
+                        fromName: true,
+                        fromEmail: true,
+                    },
+                });
+
+                const transporter = await getMailTransporter(smtpSetting
+                    ? {
+                        host: smtpSetting.host,
+                        port: smtpSetting.port,
+                        secure: smtpSetting.secure,
+                        auth: { user: smtpSetting.user, pass: smtpSetting.password },
+                    }
+                    : undefined);
+
+                const fromAddress = smtpSetting
+                    ? `${smtpSetting.fromName?.trim() || 'Tap\'in出欠'} <${smtpSetting.fromEmail?.trim() || smtpSetting.user}>`
+                    : await getDefaultMailFrom();
+
+                // eslint-disable-next-line unicorn/consistent-function-scoping
+                const escapeHtml = (text: string) =>
+                    text
+                        .replaceAll('&', '&amp;')
+                        .replaceAll('<', '&lt;')
+                        .replaceAll('>', '&gt;')
+                        .replaceAll('"', '&quot;')
+                        .replaceAll('\'', '&#39;');
+
+                const toHtml = (text: string) =>
+                    text
+                        .split('\n')
+                        .map((line) => `<p style="margin: 0 0 12px;">${escapeHtml(line)}</p>`)
+                        .join('');
+
+                const htmlBody = `<!DOCTYPE html><html lang="ja"><body><div style="font-size:14px;line-height:1.7;">${toHtml(content)}</div></body></html>`;
+
+                for (const recipient of recipients.values()) {
+                    await transporter.sendMail({
+                        from: fromAddress,
+                        to: recipient.email,
+                        subject: title,
+                        text: content,
+                        html: htmlBody,
+                    });
+                }
+
+                return c.json({ message: 'メールを送信しました', recipients: recipients.size }, 201);
+            });
+        },
+    )
     .post('/import',
         // eslint-disable-next-line sonarjs/cognitive-complexity
         async (c) => {
@@ -519,7 +654,7 @@ const app = new Hono()
                         ? `${smtpSetting.fromName?.trim() || 'Tap\'in出欠'} <${smtpSetting.fromEmail?.trim() || smtpSetting.user}>`
                         : await getDefaultMailFrom();
 
-                    // eslint-disable-next-line unicorn/consistent-function-scoping
+                    // eslint-disable-next-line unicorn/consistent-function-scoping, sonarjs/no-identical-functions
                     const escapeHtml = (text: string) =>
                         text
                             .replaceAll('&', '&amp;')

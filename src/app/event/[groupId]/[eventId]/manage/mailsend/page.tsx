@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import {
@@ -10,12 +10,58 @@ import {
     DropdownMenuTrigger,
 } from '@/components/ui/dropdownMenu';
 import { Button } from '@/components/ui/button';
+import { honoClient } from '@/lib/hono';
 
 type RecipientType = 'all' | 'going' | 'went';
 
 export default function MailSendManagePage() {
     const { groupId, eventId } = useParams<{ groupId: string; eventId: string }>();
     const [recipientType, setRecipientType] = useState<RecipientType>('all');
+    const [title, setTitle] = useState('');
+    const [content, setContent] = useState('');
+    const [isSending, setIsSending] = useState(false);
+    const [result, setResult] = useState<{ ok: boolean; message: string } | null>(null);
+
+    const targetPayload = useMemo(() => {
+        if (recipientType === 'going') return 'planned' as const;
+        if (recipientType === 'went') return 'attended' as const;
+        return 'all' as const;
+    }, [recipientType]);
+
+    const handleSend = async () => {
+        if (!title.trim() || !content.trim()) {
+            setResult({ ok: false, message: '件名と本文を入力してください' });
+            return;
+        }
+
+        if (!groupId || !eventId) {
+            setResult({ ok: false, message: 'イベント情報の取得に失敗しました' });
+            return;
+        }
+
+        setIsSending(true);
+        setResult(null);
+        try {
+            const response = await honoClient.api.events[':groupId'][':eventId'].manage.members.mail.$post({
+                param: { groupId, eventId },
+                json: { title, content, target: targetPayload },
+            });
+
+            const body = await response.json().catch(() => null);
+            if (!response.ok) {
+                setResult({ ok: false, message: body?.message ?? '送信に失敗しました' });
+                return;
+            }
+
+            setResult({ ok: true, message: body?.message ?? '送信しました' });
+            setContent('');
+        } catch (e) {
+            console.error('Failed to send mail', e);
+            setResult({ ok: false, message: '送信中にエラーが発生しました' });
+        } finally {
+            setIsSending(false);
+        }
+    };
     return (
 
         <div className="max-w-[1200px] mx-auto px-6 py-6">
@@ -58,9 +104,35 @@ export default function MailSendManagePage() {
                         </label>
                     </div>
                     <div className="mb-4">
+                        <label className="block">
+                            <div>件名</div>
+                            <input
+                                value={title}
+                                onChange={(event) => setTitle(event.target.value)}
+                                className={`
+                                        w-full
+                                        px-3 py-2
+                                        border border-gray-300
+                                        rounded-md
+                                        bg-white
+                                        focus:outline-none
+                                        focus:ring-1 focus:ring-blue-500
+                                        disabled:bg-gray-100
+                                        disabled:border-gray-200
+                                        disabled:text-gray-500
+                                        disabled:cursor-not-allowed
+                                    `}
+                                placeholder="例）お知らせ"
+                                disabled={isSending}
+                            />
+                        </label>
+                    </div>
+                    <div className="mb-4">
                         <label>
                             <div>メール本文</div>
                             <textarea
+                                value={content}
+                                onChange={(event) => setContent(event.target.value)}
                                 rows={12}
                                 className={`
                                         w-full
@@ -75,9 +147,16 @@ export default function MailSendManagePage() {
                                         disabled:text-gray-500
                                         disabled:cursor-not-allowed
                                     `}
+                                placeholder="本文を入力してください"
+                                disabled={isSending}
                             />
                         </label>
                     </div>
+                    {result && (
+                        <div className={`${result.ok ? 'text-green-600' : 'text-red-600'} mb-4 text-sm`}>
+                            {result.message}
+                        </div>
+                    )}
                     <button
                         className={`
                             inline-flex items-center justify-center
@@ -86,8 +165,10 @@ export default function MailSendManagePage() {
                             hover:bg-blue-700
                             disabled:opacity-50
                         `}
+                        onClick={handleSend}
+                        disabled={isSending}
                     >
-                        メール送信
+                        {isSending ? '送信中...' : 'メール送信'}
                     </button>
                 </div>
             </div>
