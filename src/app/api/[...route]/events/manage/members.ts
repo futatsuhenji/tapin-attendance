@@ -5,7 +5,7 @@ import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
 
-import { getMailTransporter } from '@/lib/nodemailer';
+import { getDefaultMailFrom, getMailTransporter } from '@/lib/nodemailer';
 import { getPrismaClient } from '@/lib/prisma';
 import { buildAttendanceLink } from '@/utils/attendance';
 import { AttendanceType } from '@/generated/prisma/enums';
@@ -421,6 +421,148 @@ const app = new Hono()
                     },
                 }, 201);
             });
+        },
+    )
+    .post('/mail',
+        zValidator('json', z.object({
+            title: z.string().min(1),
+            content: z.string().min(1),
+            target: z.enum(['all', 'planned', 'attended']),
+        })),
+        async (c) => {
+            const prisma = await getPrismaClient();
+            const groupId = c.req.param('groupId')!;
+            const eventId = c.req.param('eventId')!;
+            const { title, content, target } = c.req.valid('json');
+
+            try {
+                return await prisma.$transaction(async (tx) => {
+                    const event = await tx.event.findUnique({
+                        where: { id: eventId },
+                        select: { groupId: true, endsAt: true },
+                    });
+
+                    if (!event || event.groupId !== groupId) {
+                        return c.json({ message: 'Event not found' }, 404);
+                    }
+
+                    const now = new Date();
+                    const hasEnded = event.endsAt ? new Date(event.endsAt) <= now : false;
+
+                    if (target === 'planned' && hasEnded) {
+                        return c.json({ message: 'イベント終了後は参加予定者宛に送信できません' }, 400);
+                    }
+
+                    if (target === 'attended' && !hasEnded) {
+                        return c.json({ message: 'イベント終了前は参加者宛に送信できません' }, 400);
+                    }
+
+                    const recipients = await (async () => {
+                        if (target === 'attended') {
+                            const receptions = await tx.reception.findMany({
+                                where: { eventId, isRecepted: true },
+                                select: { visitor: { select: { email: true, name: true } } },
+                            });
+                            return receptions
+                                .map(({ visitor }) => visitor)
+                                .filter((visitor) => Boolean(visitor.email));
+                        }
+
+                        const attendanceFilter = target === 'planned'
+                            ? { attendance: { in: [AttendanceType.PRESENCE, AttendanceType.PRESENCE_PARTIALLY] } }
+                            : {};
+
+                        const attendances = await tx.attendance.findMany({
+                            where: { eventId, ...attendanceFilter },
+                            select: { user: { select: { email: true, name: true } } },
+                        });
+
+                        return attendances
+                            .map(({ user }) => user)
+                            .filter((user) => Boolean(user.email));
+                    })();
+
+                    // eslint-disable-next-line unicorn/no-array-reduce
+                    const uniqueRecipients = [...recipients.reduce((map, recipient) => {
+                        const key = recipient.email!.toLowerCase();
+                        if (!map.has(key)) map.set(key, recipient);
+                        return map;
+                    }, new Map<string, { email: string; name: string }>())].map(([, recipient]) => recipient);
+
+                    if (uniqueRecipients.length === 0) {
+                        return c.json({ message: '送信対象が見つかりません' }, 400);
+                    }
+
+                    const smtpSetting = await tx.eventSmtpSetting.findUnique({
+                        where: { eventId },
+                        select: {
+                            host: true,
+                            port: true,
+                            secure: true,
+                            user: true,
+                            password: true,
+                            fromName: true,
+                            fromEmail: true,
+                        },
+                    });
+
+                    const transporter = await getMailTransporter(smtpSetting
+                        ? {
+                            host: smtpSetting.host,
+                            port: smtpSetting.port,
+                            secure: smtpSetting.secure,
+                            auth: { user: smtpSetting.user, pass: smtpSetting.password },
+                        }
+                        : undefined);
+
+                    const fromAddress = smtpSetting
+                        ? `${smtpSetting.fromName?.trim() || 'Tap\'in出欠'} <${smtpSetting.fromEmail?.trim() || smtpSetting.user}>`
+                        : await getDefaultMailFrom();
+
+                    // eslint-disable-next-line unicorn/consistent-function-scoping
+                    const escapeHtml = (text: string) =>
+                        text
+                            .replaceAll('&', '&amp;')
+                            .replaceAll('<', '&lt;')
+                            .replaceAll('>', '&gt;')
+                            .replaceAll('"', '&quot;')
+                            .replaceAll('\'', '&#39;');
+
+                    const toHtml = (text: string) =>
+                        (text || '')
+                            .split('\n')
+                            .map((line) => `<p style="margin: 0 0 8px;">${escapeHtml(line)}</p>`)
+                            .join('');
+
+                    const html = `
+                        <div style="font-size:14px;line-height:1.6;">
+                            ${toHtml(content)}
+                        </div>
+                    `;
+
+                    for (const recipient of uniqueRecipients) {
+                        await transporter.sendMail({
+                            from: fromAddress,
+                            to: recipient.email,
+                            subject: title,
+                            html: `<!DOCTYPE html><html lang="ja"><body>${html}</body></html>`,
+                            text: content,
+                        });
+                    }
+
+                    return c.json({
+                        message: 'Mails sent',
+                        summary: {
+                            target,
+                            recipients: uniqueRecipients.length,
+                        },
+                    }, 201);
+                });
+            } catch (e) {
+                if (e instanceof Response) return e;
+                console.error('Failed to send mail to event members', e);
+                return c.json({ message: 'Unknown error' }, 500);
+            }
         },
     )
     .delete('/',
