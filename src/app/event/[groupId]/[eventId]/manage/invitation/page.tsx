@@ -217,10 +217,12 @@ export default function EventInvitationPage() {
 
     const handleSend = async () => {
         if (!groupId || !eventId) return;
-        const saved = await handleSave();
-        if (!saved) return;
-        const smtpSaved = await handleSaveSmtp();
-        if (smtpSetting.enabled && !smtpSaved) return;
+        if (mode !== 'view') {
+            const saved = await handleSave();
+            if (!saved) return;
+            const smtpSaved = await handleSaveSmtp();
+            if (smtpSetting.enabled && !smtpSaved) return;
+        }
         setIsSending(true);
         try {
             const response = await honoClient.api.events[':groupId'][':eventId'].manage.invitation.send.$post({
@@ -643,9 +645,18 @@ export default function EventInvitationPage() {
                         )}
 
                         {mode === 'view' && (
-                            <p style={{ color: '#666' }}>
-                                このメールは送付済みのため編集できません
-                            </p>
+                            <div className="flex flex-wrap items-center gap-4">
+                                <p style={{ color: '#666' }}>
+                                    このメールは送付済みのため編集できません
+                                </p>
+                                <button
+                                    onClick={handleSend}
+                                    disabled={isSending}
+                                    className="inline-flex items-center justify-center rounded-md bg-blue-600 px-6 py-2 text-base font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+                                >
+                                    {isSending ? '再送中…' : '再送'}
+                                </button>
+                            </div>
                         )}
                     </footer>
                 </div>

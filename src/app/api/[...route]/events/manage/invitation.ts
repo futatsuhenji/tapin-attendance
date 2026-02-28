@@ -188,7 +188,11 @@ const app = new Hono()
                             if (targetId) {
                                 const attendee = await tx.attendance.findUnique({
                                     where: { eventId_userId: { eventId, userId: targetId } },
-                                    select: { secret: true, user: { select: { email: true, name: true } } },
+                                    select: {
+                                        attendance: true,
+                                        secret: true,
+                                        user: { select: { email: true, name: true } },
+                                    },
                                 });
                                 if (attendee) {
                                     attendees = [attendee];
@@ -198,7 +202,11 @@ const app = new Hono()
                             } else {
                                 attendees = await tx.attendance.findMany({
                                     where: { eventId },
-                                    select: { secret: true, user: { select: { email: true, name: true } } },
+                                    select: {
+                                        attendance: true,
+                                        secret: true,
+                                        user: { select: { email: true, name: true } },
+                                    },
                                 });
                             }
 
@@ -271,7 +279,7 @@ const app = new Hono()
                                 await transporter.sendMail({
                                     from: fromAddress,
                                     to: attendee.user.email,
-                                    subject: mail.title,
+                                    subject: attendee.attendance === null ? mail.title : `【再送】${mail.title}`,
                                     html: `<!DOCTYPE html><html lang="ja"><body>${htmlWithTracking}</body></html>`,
                                     text,
                                 });
@@ -279,9 +287,15 @@ const app = new Hono()
 
                             // eslint-disable-next-line unicorn/prefer-ternary
                             if (targetId) {
-                                await tx.attendance.updateMany({ where: { eventId, userId: targetId }, data: { 'attendance': 'UNANSWERED' } });
+                                await tx.attendance.updateMany({
+                                    where: { eventId, userId: targetId, attendance: null },
+                                    data: { attendance: 'UNANSWERED' },
+                                });
                             } else {
-                                await tx.attendance.updateMany({ where: { eventId }, data: { 'attendance': 'UNANSWERED' } });
+                                await tx.attendance.updateMany({
+                                    where: { eventId, attendance: null },
+                                    data: { attendance: 'UNANSWERED' },
+                                });
                             }
                             return c.json({ message: 'Mails sent' }, 201);
                         } else {
