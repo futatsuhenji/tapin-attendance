@@ -35,13 +35,21 @@ export async function proxy(request: NextRequest) {
 
             switch (reader.next()) {
                 case 'events': {
-                    // Peek next three segments: /api/events/:groupId/:eventId/:action
+                    // Peek next segments: /api/events/:groupId/:eventId/:action/:subAction
                     const seg1 = reader.next();
                     const seg2 = reader.next();
                     const seg3 = reader.next();
+                    const seg4 = reader.next();
 
                     // allow public respond endpoints without auth: /api/events/:groupId/:eventId/respond/:decision
                     if (['respond', 'open'].includes(seg3!)) {
+                        return NextResponse.next();
+                    }
+
+                    // allow public registration endpoints without auth.
+                    // /api/events/:groupId/:eventId/register/request
+                    // /api/events/:groupId/:eventId/register/complete
+                    if (seg3 === 'register' && ['request', 'complete'].includes(seg4 ?? '')) {
                         return NextResponse.next();
                     }
 
