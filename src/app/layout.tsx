@@ -3,6 +3,9 @@
 
 import type { Metadata } from 'next';
 import { Geist, Geist_Mono } from 'next/font/google';
+
+import ApiAuthRedirectHandler from '@/components/apiAuthRedirectHandler';
+
 import './globals.css';
 
 const geistSans = Geist({
@@ -30,6 +33,7 @@ export default function RootLayout({
             <body
                 className={`${geistSans.variable} ${geistMono.variable} antialiased`}
             >
+                <ApiAuthRedirectHandler />
                 <div
                     style={{
                         minHeight: '90vh',
