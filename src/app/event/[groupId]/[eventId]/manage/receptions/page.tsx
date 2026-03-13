@@ -92,7 +92,7 @@ function statusLabel(status: AttendanceStatus): string {
             return '欠席';
         }
         default: {
-            return '未回答';
+            return '参加申込者';
         }
     }
 }
@@ -299,6 +299,12 @@ export default function ReceptionManagePage() {
                         <p className="text-sm text-gray-600">会場: {data.event.place || '未設定'}</p>
                     </div>
                     <div className="flex flex-wrap items-center gap-3">
+                        <Link
+                            href={`/event/${groupId}/${eventId}/register`}
+                            className="rounded-md border border-blue-200 bg-blue-50 px-3 py-2 text-sm font-medium text-blue-700 shadow-sm hover:border-blue-300"
+                        >
+                            新規会員登録ページ
+                        </Link>
                         <Link
                             href={`/event/${groupId}/${eventId}`}
                             className="rounded-md border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm hover:border-gray-300"

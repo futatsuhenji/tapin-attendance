@@ -461,7 +461,7 @@ export default function EventManagePage() {
                         <SummaryRow label="出席" value={data.attendance.presence} total={data.attendance.total} color="bg-green-500" />
                         <SummaryRow label="遅刻・早退" value={data.attendance.partial} total={data.attendance.total} color="bg-amber-500" />
                         <SummaryRow label="欠席" value={data.attendance.absence} total={data.attendance.total} color="bg-red-500" />
-                        <SummaryRow label="未回答" value={data.attendance.unanswered} total={data.attendance.total} color="bg-gray-400" />
+                        <SummaryRow label="参加申込者" value={data.attendance.unanswered} total={data.attendance.total} color="bg-gray-400" />
                     </div>
                 </div>
             </section>
@@ -725,7 +725,7 @@ function statusLabel(status: AttendanceStatus): string {
         // eslint-disable-next-line unicorn/no-useless-switch-case
         case 'UNANSWERED':
         default: {
-            return '未回答';
+            return '参加申込者';
         }
     }
 }
