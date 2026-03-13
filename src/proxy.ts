@@ -29,6 +29,12 @@ class PathSegmentReader {
 export async function proxy(request: NextRequest) {
     const jwt = await getJwtFromCookieStore();
     const reader = new PathSegmentReader(request.nextUrl.pathname);
+
+    // If already authenticated, the login page is unnecessary.
+    if (request.nextUrl.pathname === '/login' && jwt) {
+        return NextResponse.redirect(new URL('/mypage', request.url));
+    }
+
     // eslint-disable-next-line sonarjs/no-small-switch
     switch (reader.next()) {
         case 'api': {
@@ -109,5 +115,6 @@ export async function proxy(request: NextRequest) {
 export const config = {
     matcher: [
         '/api/:path*',
+        '/login',
     ],
 };
